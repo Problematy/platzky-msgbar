@@ -1,0 +1,68 @@
+name: Testing pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: 'read'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry==1.7.1
+        poetry install
+    - name: Run linters
+      run: make lint-check
+
+    - name: Run unit-tests
+      run: make unit-tests
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Cypress
+      working-directory: tests/e2e_tests
+      run: |
+        npm install cypress
+
+    - name: Run Flask server in background
+      run: |
+        echo "from flask import Flask; from platzky_b4uleave.entrypoint import process; app = Flask(__name__); app.route('/')(process)" > temp_app.py
+        export FLASK_APP=temp_app:app
+        export FLASK_ENV=development
+        poetry run flask run --host=goodmap.localhost --port=5000 & 
+        echo $! > flask.pid
+        sleep 3
+
+    - name: Run Cypress tests
+      working-directory: tests/e2e_tests
+      run: npx cypress run --spec "cypress/e2e/**/*"
+
+    - name: Stop Flask server
+      run: kill $FLASK_PID || true
+
+
+    # - name: Run tests with coverage
+    #   run: make coverage
+    # - name: Coveralls
+    #   uses: coverallsapp/github-action@v1
+    #   with:
+    #     path-to-lcov: "./coverage.lcov"
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+
