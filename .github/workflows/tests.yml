@@ -45,15 +45,11 @@ jobs:
 
     - name: Run Flask server in background
       run: |
-        PYTHONUNBUFFERED=1;FLASK_ENV=development;FLASK_APP="goodmap.goodmap:create_app(config_path='./tests/e2e_tests/e2e_test_config.yml')" poetry run flask run &
-        FLASK_PID=$!
-        sleep 3
+        poetry run flask --app "platzky.platzky:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" run --debug &
 
     - name: Run Cypress tests
       working-directory: tests/e2e_tests
       run: npx cypress run --spec "cypress/e2e/**/*"
 
-    - name: Stop Flask server
-      run: kill $FLASK_PID
 
 
