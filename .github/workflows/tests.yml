@@ -45,11 +45,8 @@ jobs:
 
     - name: Run Flask server in background
       run: |
-        echo "from flask import Flask; from platzky_b4uleave.entrypoint import process; app = Flask(__name__); app.route('/')(process)" > temp_app.py
-        export FLASK_APP=temp_app:app
-        export FLASK_ENV=development
-        poetry run flask run --host=goodmap.localhost --port=5000 & 
-        echo $! > flask.pid
+        PYTHONUNBUFFERED=1;FLASK_ENV=development;FLASK_APP="goodmap.goodmap:create_app(config_path='./tests/e2e_tests/e2e_test_config.yml')" poetry run flask run &
+        FLASK_PID=$!
         sleep 3
 
     - name: Run Cypress tests
@@ -57,14 +54,6 @@ jobs:
       run: npx cypress run --spec "cypress/e2e/**/*"
 
     - name: Stop Flask server
-      run: kill $FLASK_PID || true
+      run: kill $FLASK_PID
 
-
-    # - name: Run tests with coverage
-    #   run: make coverage
-    # - name: Coveralls
-    #   uses: coverallsapp/github-action@v1
-    #   with:
-    #     path-to-lcov: "./coverage.lcov"
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
