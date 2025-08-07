@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - feature/plugin-with-tests
 
 jobs:
   build:
