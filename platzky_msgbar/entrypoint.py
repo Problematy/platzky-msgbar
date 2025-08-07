@@ -1,15 +1,17 @@
 from flask import Flask, Response
 from typing import Any, Dict
 
+
 def process(app: Flask, plugin_config: Dict[str, Any]):
-    
-    app.config['msgbar'] = plugin_config or {}
-    message = app.config['msgbar'].get('message', 'This is a default notification message.')
+
+    app.config["msgbar"] = plugin_config or {}
+    message = app.config["msgbar"].get(
+        "message", "This is a default notification message."
+    )
 
     @app.after_request
-
     def inject_msg_bar(response: Response) -> Response:
-        if 'text/html' in response.headers.get('Content-Type', ''):
+        if "text/html" in response.headers.get("Content-Type", ""):
             bar_html = f"""
 <style id="MsgBarStyle">
 #MsgBar {{
@@ -50,11 +52,11 @@ body {{
     <button class="close-btn" onclick="document.getElementById('MsgBar').remove();document.getElementById('MsgBarStyle').remove();">&times;</button>
 </div>
 """
-            
+
             html = response.get_data(as_text=True)
-            html = html.replace('</head>', bar_html + '</head>')
+            html = html.replace("</head>", bar_html + "</head>")
             response.set_data(html)
-            
+
         return response
 
     return app

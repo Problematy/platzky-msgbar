@@ -37,6 +37,6 @@ def test_that_plugin_loads_msgbar():
 
     assert response.status_code == 404
     decoded_response = response.data.decode()
-    
+
     assert msgbar_function in decoded_response
     assert custom_message in decoded_response
