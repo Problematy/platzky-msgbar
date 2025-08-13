@@ -46,7 +46,7 @@ jobs:
     - name: Run Flask server in background
       working-directory: tests/e2e_tests
       run: |
-        poetry run flask --app "platzky.platzky:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" run --debug &
+        poetry run flask --app "platzky.platzky:create_app(config_path='e2e_test_config.yml')" run --debug &
         npx wait-on http://127.0.0.1:5000
         npx cypress run --spec "cypress/e2e/**/*"
 
