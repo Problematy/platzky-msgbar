@@ -30,6 +30,11 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    will-change: transform; 
 }}
 #MsgBar .close-btn {{
     position: absolute;
