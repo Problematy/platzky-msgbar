@@ -8,6 +8,7 @@ def create_app(config_path: str):
 
     msgbar_process(app, {"message": "Hello from MsgBar!"})
 
+    @app.route("/")
     def index():
         # Make sure the MsgBar element exists in the page for Cypress
         return render_template_string(
