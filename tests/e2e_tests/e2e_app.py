@@ -28,6 +28,4 @@ def create_app(config_path: str):
             """
         )
 
-    # msgbar_process(app, {"message": "Hello from MsgBar!"})
-
     return app
