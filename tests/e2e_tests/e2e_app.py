@@ -1,6 +1,6 @@
 from platzky.platzky import create_app as base_create_app
 from platzky_msgbar.entrypoint import process as msgbar_process
-from flask import Flask, render_template_string
+from flask import render_template_string
 
 
 def create_app(config_path: str):
@@ -10,12 +10,15 @@ def create_app(config_path: str):
 
     def index():
         # Make sure the MsgBar element exists in the page for Cypress
-        return render_template_string("""
+        return render_template_string(
+            """
             <html>
             <body>
                 <div id="MsgBar">{{ app.config['msgbar']['message'] }}</div>
             </body>
             </html>
-        """, app=app)
+        """,
+            app=app,
+        )
 
     return app
