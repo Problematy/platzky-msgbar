@@ -12,10 +12,10 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
         if "text/html" in response.headers.get("Content-Type", ""):
-            html = response.get_data(as_text=True)
+            html_r = response.get_data(as_text=True)
 
-        if 'id="MsgBar"' not in html:
-            bar_html = f"""
+            if 'id="MsgBar"' not in html_r:
+                bar_html = f"""
 <style id="MsgBarStyle">
 #MsgBar {{
     background-color: #245466;
