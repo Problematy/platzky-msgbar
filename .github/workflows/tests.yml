@@ -43,17 +43,12 @@ jobs:
       run: |
         npm install cypress
 
-    # - name: Run e2e tests
-    #   run: |
-    #     poetry run flask --app "platzky.platzky:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" run --debug &
-    #     sleep 6
-    #     cd tests/e2e_tests && npx cypress run --spec "cypress/e2e/**/*"
-
     - name: Run e2e tests
       run: |
-        PYTHONUNBUFFERED=1;FLASK_ENV=development;FLASK_APP="platzky.platzky:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" poetry run flask run &
+        poetry run flask --app "platzky.platzky:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" run --debug --host=localhost &
         sleep 6
         cd tests/e2e_tests && npx cypress run --spec "cypress/e2e/**/*"
+
 
 
 
