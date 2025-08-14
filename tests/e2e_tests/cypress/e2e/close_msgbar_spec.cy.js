@@ -1,5 +1,8 @@
 describe('msgbar plugin behaviour', () => {
     beforeEach(() => {
+          cy.document().then(doc => {
+                doc.body.setAttribute('data-cy-test', 'true'); // marks test mode
+            });
         cy.visit('/');
     });
     
