@@ -1,6 +1,5 @@
 from flask import render_template_string
 from platzky.platzky import create_app as base_create_app
-from platzky_msgbar.entrypoint import process as msgbar_process
 
 
 def create_app(config_path: str):
