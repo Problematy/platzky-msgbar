@@ -12,10 +12,7 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
         if "text/html" in response.headers.get("Content-Type", ""):
-            html_r = response.get_data(as_text=True)
-
-            if 'id="MsgBar"' not in html_r:
-                bar_html = f"""
+            bar_html = f"""
 <style id="MsgBarStyle">
 #MsgBar {{
     background-color: #245466;
@@ -33,11 +30,6 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    will-change: transform; 
 }}
 #MsgBar .close-btn {{
     position: absolute;
