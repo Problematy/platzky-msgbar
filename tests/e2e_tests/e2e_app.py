@@ -7,9 +7,6 @@ def create_app(config_path: str):
     # Base app
     app = base_create_app(config_path=config_path)
 
-    # Inject MsgBar plugin with a test message
-    msgbar_process(app, {"message": "Hello from MsgBar!"})
-
     @app.route("/")
     def index():
         return render_template_string(
@@ -31,5 +28,7 @@ def create_app(config_path: str):
             </html>
             """
         )
+
+    msgbar_process(app, {"message": "Hello from MsgBar!"})
 
     return app
