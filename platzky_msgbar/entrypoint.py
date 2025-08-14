@@ -34,8 +34,8 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
 #MsgBar .close-btn {{
     position: absolute;
     right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 5px;
+    transform: none;
     font-weight: bold;
     font-size: 16px;
     color: white;
