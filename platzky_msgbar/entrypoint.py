@@ -22,19 +22,19 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     padding: 5px 40px 5px 10px;
     font-size: 14px;
     font-family: 'Arial', sans-serif;
-    position: fixed;
-    top: 0;
+    position: relative !important;
+    top: auto;
     left: 0;
     z-index: 9999;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     white-space: nowrap;
-    overflow: visible;
+    overflow: visible !important;
     text-overflow: ellipsis;
 }}
 #MsgBar .close-btn {{
     position: absolute;
     right: 10px;
-    top: 5px;
+    top: 5px !important;
     transform: none;
     font-weight: bold;
     font-size: 16px;
