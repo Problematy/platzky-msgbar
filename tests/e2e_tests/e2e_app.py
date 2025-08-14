@@ -12,19 +12,24 @@ def create_app(config_path: str):
 
     @app.route("/")
     def index():
-        # Minimal HTML with <head> so MsgBar plugin can inject CSS + div
         return render_template_string(
             """
             <html>
             <head>
                 <title>E2E Test Page</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                    }
+                </style>
             </head>
             <body>
                 <h1>Welcome to E2E Test</h1>
                 <p>This page includes the MsgBar plugin for testing.</p>
             </body>
             </html>
-        """
+            """
         )
 
     return app
