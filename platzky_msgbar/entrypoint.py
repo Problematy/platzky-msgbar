@@ -49,6 +49,11 @@ body {{
 body[data-cy-test="true"] #MsgBar {{
     position: relative !important;
     top: auto !important;
+    overflow: visible !important;
+}}
+body[data-cy-test="true"] #MsgBar .close-btn {{
+    top: 5px !important;
+    transform: none !important;
 }}
 </style>
 <div id="MsgBar">
