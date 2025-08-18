@@ -22,7 +22,7 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     padding: 5px 40px 5px 10px;
     font-size: 14px;
     font-family: 'Arial', sans-serif;
-    position: relative !important;
+    position: fixed;
     top: 0;
     left: 0;
     z-index: 9999;
@@ -32,7 +32,7 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     text-overflow: ellipsis;
 }}
 #MsgBar .close-btn {{
-    position: absolute;
+    position: relative;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
