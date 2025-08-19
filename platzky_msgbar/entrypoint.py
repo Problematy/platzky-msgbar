@@ -1,10 +1,13 @@
 from flask import Flask, Response
 from typing import Any, Dict
 
+
 def process(app: Flask, plugin_config: Dict[str, Any]):
 
     app.config["msgbar"] = plugin_config or {}
-    message = app.config["msgbar"].get("message", "This is a default notification message.")
+    message = app.config["msgbar"].get(
+        "message", "This is a default notification message."
+    )
 
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
