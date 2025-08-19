@@ -28,15 +28,11 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     z-index: 9999;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     white-space: nowrap;
-    overflow: visible !important;
+    overflow: hidden;
     text-overflow: ellipsis;
 }}
-#MsgBar .inner {{
-    position: relative;
-}}
-
 #MsgBar .close-btn {{
-    position: absolute;
+    position: relative !important;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
