@@ -1,19 +1,17 @@
 from flask import Flask, Response
 from typing import Any, Dict
 
-
 def process(app: Flask, plugin_config: Dict[str, Any]):
 
     app.config["msgbar"] = plugin_config or {}
-    message = app.config["msgbar"].get(
-        "message", "This is a default notification message."
-    )
+    message = app.config["msgbar"].get("message", "This is a default notification message.")
 
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
         if "text/html" in response.headers.get("Content-Type", ""):
             bar_html = f"""
 <style id="MsgBarStyle">
+
 #MsgBar {{
     position: fixed;
     top: 0;
@@ -21,21 +19,25 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     width: 100%;
     background-color: #245466;
     color: white;
-    text-align: center;
-    padding: 5px 40px 5px 10px;
     font-size: 14px;
     font-family: 'Arial', sans-serif;
     z-index: 9999;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
 }}
+
+#MsgBar .msg-content {{
+    flex: 1;             /* zajmuje całą szerokość */
+    text-align: center;  /* wyśrodkowanie napisu */
+}}
+
 #MsgBar .close-btn {{
-    position: relative !important;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative;  /* wymagane przez testy */
+    margin-left: auto;   /* dociąga maksymalnie w prawo */
     font-weight: bold;
     font-size: 16px;
     color: white;
@@ -43,12 +45,14 @@ def process(app: Flask, plugin_config: Dict[str, Any]):
     background: none;
     border: none;
 }}
+
 body {{
     padding-top: 30px !important;
 }}
+
 </style>
 <div id="MsgBar">
-    {message}
+    <div class="msg-content">{message}</div>
     <button class="close-btn" onclick="document.getElementById('MsgBar').remove();document.getElementById('MsgBarStyle').remove();">&times;</button>
 </div>
 """
