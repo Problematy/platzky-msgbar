@@ -1,0 +1,1 @@
+from platzky_msgbar.entrypoint import process as process
