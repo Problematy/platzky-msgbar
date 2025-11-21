@@ -1,9 +1,10 @@
-from flask import Flask, Response
+from flask import Response
 from typing import Any, Dict
 import markdown
+from platzky import Engine
 
 
-def process(app: Flask, plugin_config: Dict[str, Any]):
+def process(app: Engine, plugin_config: Dict[str, Any]):
 
     app.config["msgbar"] = plugin_config or {}
 
