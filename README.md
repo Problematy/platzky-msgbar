@@ -43,7 +43,7 @@ You can also use link attributes:
 
 If you omit `message`, it defaults to:
 
-```
+```text
 This is a default notification message.
 ```
 
