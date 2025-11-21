@@ -429,3 +429,240 @@ def test_msgbar_sanitizes_raw_html():
     # The safe content should remain
     assert "Safe" in decoded_response
     assert "unsafe" in decoded_response
+
+
+def test_msgbar_blocks_css_injection_in_background_color():
+    """Test that CSS injection attempts in background_color are blocked"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "background_color": "red; } body { display: none; } #foo {",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Extract the MsgBar CSS specifically
+    import re
+
+    msgbar_style_match = re.search(
+        r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
+    )
+    assert msgbar_style_match is not None
+    msgbar_style = msgbar_style_match.group(1)
+
+    # CSS injection should be blocked - the malicious CSS should not appear in MsgBar styles
+    assert "display: none" not in msgbar_style
+    assert "} #foo {" not in msgbar_style
+    # The injected content should not break out of the MsgBar styling
+    assert "#MsgBar {" in msgbar_style
+    # Background should be a valid color (not containing injection)
+    assert re.search(r"background-color:\s*[^;{]+;", msgbar_style) is not None
+
+
+def test_msgbar_blocks_css_injection_in_font_family():
+    """Test that CSS injection attempts in font_family are blocked"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "font_family": "Arial'; } body { background: url('http://evil.com'); } #foo { font-family: '",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # CSS injection should be blocked
+    assert "evil.com" not in decoded_response
+    # Default font family should be used
+    assert "font-family: 'Arial', sans-serif" in decoded_response
+
+
+def test_msgbar_blocks_css_url_function():
+    """Test that url() functions in CSS values are blocked"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "font_family": "url('http://evil.com/font.woff')",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # url() function should be blocked
+    assert (
+        "url(" not in decoded_response or "url(data:" in decoded_response
+    )  # Allow data URLs from other sources
+    assert "evil.com" not in decoded_response
+
+
+def test_msgbar_validates_css_size_values():
+    """Test that invalid CSS size values are rejected"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "font_size": "14px; color: red;",
+                            "bar_height": "calc(100vh - 10px)",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Invalid size values should be rejected and defaults used
+    assert "font-size: 14px" in decoded_response  # Default
+    assert "color: red" not in decoded_response  # CSS injection blocked
+    assert "calc(" not in decoded_response  # CSS function blocked
+    assert "padding-top: 30px" in decoded_response  # Default height
+
+
+def test_msgbar_accepts_valid_css_colors():
+    """Test that valid CSS color values are accepted"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "background_color": "#ff5733",
+                            "text_color": "rgb(255, 255, 255)",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Valid colors should be accepted
+    assert "background-color: #ff5733" in decoded_response
+    assert "color: rgb(255, 255, 255)" in decoded_response
+
+
+def test_msgbar_accepts_valid_css_sizes():
+    """Test that valid CSS size values are accepted"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Test",
+                            "font_size": "16px",
+                            "bar_height": "2rem",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Valid sizes should be accepted
+    assert "font-size: 16px" in decoded_response
+    assert "padding-top: 2rem" in decoded_response

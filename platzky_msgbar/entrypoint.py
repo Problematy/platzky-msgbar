@@ -3,17 +3,20 @@ from typing import Any, Dict
 import markdown
 import bleach
 from platzky import Engine
+from platzky_msgbar.config import MsgBarConfig
 
 
 def process(app: Engine, plugin_config: Dict[str, Any]):
+    # Validate and sanitize config using Pydantic model
+    # This protects against CSS injection attacks
+    config = MsgBarConfig(**plugin_config)
 
-    message_raw = plugin_config.get(
-        "message", "This is a default notification message."
-    )
     # Convert markdown to HTML (inline only, no <p> tags)
     # attr_list extension allows syntax like: [link](url){:target="_blank"}
     message_html = markdown.markdown(
-        message_raw, extensions=["extra", "attr_list"], output_format="html"
+        config.message or "This is a default notification message.",
+        extensions=["extra", "attr_list"],
+        output_format="html",
     ).strip()
     # Remove wrapping <p> tags if present (for inline rendering)
     if message_html.startswith("<p>") and message_html.endswith("</p>"):
@@ -35,9 +38,6 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
         strip=True,
     )
 
-    # Get styling configuration with Platzky defaults fallback
-    # Priority: plugin config > Platzky DB defaults > hardcoded defaults
-
     # Get Platzky defaults from database if available
     platzky_primary_color = None
     platzky_secondary_color = None
@@ -51,21 +51,23 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
         except Exception:
             pass  # If DB not available or methods don't exist, use hardcoded defaults
 
-    background_color = (
-        plugin_config.get("background_color") or platzky_primary_color or "#245466"
+    # Get validated CSS values with fallback priority:
+    # 1. Validated plugin config (from Pydantic model)
+    # 2. Platzky DB defaults
+    # 3. Hardcoded defaults
+    background_color = config.get_validated_background_color(
+        platzky_primary_color or "#245466"
     )
 
-    text_color = plugin_config.get("text_color") or platzky_secondary_color or "white"
+    text_color = config.get_validated_text_color(platzky_secondary_color or "white")
 
-    font_family = (
-        plugin_config.get("font_family")
-        or (f"'{platzky_font}', sans-serif" if platzky_font else None)
-        or "'Arial', sans-serif"
+    font_family = config.get_validated_font_family(
+        f"'{platzky_font}', sans-serif" if platzky_font else "'Arial', sans-serif"
     )
 
-    font_size = plugin_config.get("font_size") or "14px"
+    font_size = config.get_validated_font_size("14px")
 
-    bar_height = plugin_config.get("bar_height") or "30px"
+    bar_height = config.get_validated_bar_height("30px")
 
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:

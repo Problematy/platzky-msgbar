@@ -49,10 +49,18 @@ This is a default notification message.
 
 ## Security
 
-The plugin automatically sanitizes all message content to prevent XSS attacks:
+The plugin implements comprehensive security measures to protect against injection attacks:
 
+### XSS Protection
 - Only safe HTML tags are allowed: `a`, `strong`, `em`, `b`, `i`, `code`, `br`, `span`
 - Dangerous content like `<script>` tags, `javascript:` URLs, and event handlers are stripped
 - Links are restricted to safe protocols: `http`, `https`, `mailto`
 
-This protection is always active and cannot be disabled.
+### CSS Injection Protection
+- All CSS configuration values (colors, sizes, fonts) are validated using Pydantic
+- Colors must be valid hex, rgb/rgba, hsl/hsla, or named colors
+- Sizes must follow the pattern: `number + unit` (px, em, rem, %, vh, vw)
+- Font families cannot contain dangerous characters or CSS functions like `url()`
+- Invalid values are automatically rejected and replaced with safe defaults
+
+All security protections are always active and cannot be disabled.
