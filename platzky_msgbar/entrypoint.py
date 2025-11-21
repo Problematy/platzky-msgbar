@@ -6,12 +6,7 @@ from platzky import Engine
 
 def process(app: Engine, plugin_config: Dict[str, Any]):
 
-    app.config["msgbar"] = plugin_config or {}
-
-    print(plugin_config)
-
-    # Get message and convert markdown to HTML
-    message_raw = app.config["msgbar"].get(
+    message_raw = plugin_config.get(
         "message", "This is a default notification message."
     )
     # Convert markdown to HTML (inline only, no <p> tags)
@@ -40,24 +35,20 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
             pass  # If DB not available or methods don't exist, use hardcoded defaults
 
     background_color = (
-        app.config["msgbar"].get("background_color")
-        or platzky_primary_color
-        or "#245466"
+        plugin_config.get("background_color") or platzky_primary_color or "#245466"
     )
 
-    text_color = (
-        app.config["msgbar"].get("text_color") or platzky_secondary_color or "white"
-    )
+    text_color = plugin_config.get("text_color") or platzky_secondary_color or "white"
 
     font_family = (
-        app.config["msgbar"].get("font_family")
+        plugin_config.get("font_family")
         or (f"'{platzky_font}', sans-serif" if platzky_font else None)
         or "'Arial', sans-serif"
     )
 
-    font_size = app.config["msgbar"].get("font_size") or "14px"
+    font_size = plugin_config.get("font_size") or "14px"
 
-    bar_height = app.config["msgbar"].get("bar_height") or "30px"
+    bar_height = plugin_config.get("bar_height") or "30px"
 
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
