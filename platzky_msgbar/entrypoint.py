@@ -38,18 +38,11 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
         strip=True,
     )
 
-    # Get Platzky defaults from database if available
-    platzky_primary_color = None
-    platzky_secondary_color = None
-    platzky_font = None
-
-    if hasattr(app, "db"):
-        try:
-            platzky_primary_color = app.db.get_primary_color()
-            platzky_secondary_color = app.db.get_secondary_color()
-            platzky_font = app.db.get_font()
-        except Exception:
-            pass  # If DB not available or methods don't exist, use hardcoded defaults
+    # Get Platzky defaults from database
+    # Will fail fast if db is not available
+    platzky_primary_color = app.db.get_primary_color()
+    platzky_secondary_color = app.db.get_secondary_color()
+    platzky_font = app.db.get_font()
 
     # Get validated CSS values with fallback priority:
     # 1. Validated plugin config (from Pydantic model)
