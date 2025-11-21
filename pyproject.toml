@@ -10,6 +10,7 @@ readme = "README.md"
 python = "^3.10"
 pydantic = "^2.10.3"
 gql = "^3.5.0"
+markdown = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
