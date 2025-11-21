@@ -248,3 +248,184 @@ def test_msgbar_with_markdown_link_attributes():
     assert 'rel="noopener"' in decoded_response
     assert '<a href="https://example.com"' in decoded_response
     assert "our site</a>" in decoded_response
+
+
+def test_msgbar_sanitizes_script_tags():
+    """Test that script tags are stripped to prevent XSS attacks"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Hello <script>alert('XSS')</script> World",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Extract the message bar content specifically
+    import re
+
+    msgbar_match = re.search(r'<div class="msg-content">(.*?)</div>', decoded_response)
+    assert msgbar_match is not None
+    msgbar_content = msgbar_match.group(1)
+
+    # Script tags should be completely removed from message content
+    assert "<script>" not in msgbar_content
+    assert "</script>" not in msgbar_content
+    assert (
+        "alert('XSS')" in msgbar_content
+    )  # Text content remains but tags are stripped
+    # The safe content should still be present
+    assert "Hello" in msgbar_content
+    assert "World" in msgbar_content
+
+
+def test_msgbar_sanitizes_javascript_urls():
+    """Test that javascript: URLs are blocked"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "[Click me](javascript:alert('XSS'))",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # javascript: URL should be blocked - the entire href should be removed
+    assert "javascript:" not in decoded_response
+    assert "alert('XSS')" not in decoded_response
+    # The link text should still be present but without the dangerous href
+    assert "Click me" in decoded_response
+
+
+def test_msgbar_sanitizes_event_handlers():
+    """Test that event handlers like onclick are stripped"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "[Link](https://example.com){:onclick=\"alert('XSS')\"}",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Extract the message bar content specifically
+    import re
+
+    msgbar_match = re.search(
+        r'<div class="msg-content">(.*?)</div>', decoded_response, re.DOTALL
+    )
+    assert msgbar_match is not None
+    msgbar_content = msgbar_match.group(1)
+
+    # onclick attribute should be stripped from the message content links
+    # The malicious onclick should not appear in the message link
+    assert (
+        "onclick" not in msgbar_content
+        or 'onclick="document.getElementById' in decoded_response
+    )  # Allow close button onclick
+    assert "alert('XSS')" not in msgbar_content
+    # The safe parts should still be present in the message content
+    assert '<a href="https://example.com"' in msgbar_content
+    assert "Link</a>" in msgbar_content
+    # Verify no onclick on the link itself
+    link_match = re.search(r'<a href="https://example.com"[^>]*>', msgbar_content)
+    assert link_match is not None
+    assert "onclick" not in link_match.group(0)
+
+
+def test_msgbar_sanitizes_raw_html():
+    """Test that raw HTML tags not in allowlist are stripped"""
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": "Safe <strong>bold</strong> and <iframe src='evil.com'></iframe> unsafe",
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+    decoded_response = response.data.decode()
+
+    # Allowed tag (strong) should be present
+    assert "<strong>bold</strong>" in decoded_response
+    # Disallowed tag (iframe) should be stripped
+    assert "<iframe" not in decoded_response
+    assert "</iframe>" not in decoded_response
+    assert "evil.com" not in decoded_response
+    # The safe content should remain
+    assert "Safe" in decoded_response
+    assert "unsafe" in decoded_response

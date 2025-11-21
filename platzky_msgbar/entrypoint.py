@@ -1,6 +1,7 @@
 from flask import Response
 from typing import Any, Dict
 import markdown
+import bleach
 from platzky import Engine
 
 
@@ -11,12 +12,28 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
     )
     # Convert markdown to HTML (inline only, no <p> tags)
     # attr_list extension allows syntax like: [link](url){:target="_blank"}
-    message = markdown.markdown(
+    message_html = markdown.markdown(
         message_raw, extensions=["extra", "attr_list"], output_format="html"
     ).strip()
     # Remove wrapping <p> tags if present (for inline rendering)
-    if message.startswith("<p>") and message.endswith("</p>"):
-        message = message[3:-4]
+    if message_html.startswith("<p>") and message_html.endswith("</p>"):
+        message_html = message_html[3:-4]
+
+    # Sanitize HTML to prevent XSS attacks
+    # Allow only safe tags and attributes needed for message bar functionality
+    allowed_tags = ["a", "strong", "em", "b", "i", "code", "br", "span"]
+    allowed_attributes = {
+        "a": ["href", "title", "target", "rel"],
+        "span": ["class"],
+    }
+    # Sanitize and ensure no javascript: URLs or dangerous protocols
+    message = bleach.clean(
+        message_html,
+        tags=allowed_tags,
+        attributes=allowed_attributes,
+        protocols=["http", "https", "mailto"],
+        strip=True,
+    )
 
     # Get styling configuration with Platzky defaults fallback
     # Priority: plugin config > Platzky DB defaults > hardcoded defaults
