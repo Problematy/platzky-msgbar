@@ -209,3 +209,42 @@ def test_msgbar_with_multiple_markdown_links():
     assert "Google</a>" in decoded_response
     assert '<a href="https://github.com">' in decoded_response
     assert "GitHub</a>" in decoded_response
+
+
+def test_msgbar_with_markdown_link_attributes():
+
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {
+                            "message": 'Visit [our site](https://example.com){:target="_blank" rel="noopener"}',
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+    app_with_plugin = create_app_from_config(config_with_plugin)
+
+    response = app_with_plugin.test_client().get("/")
+
+    assert response.status_code == 404
+    decoded_response = response.data.decode()
+
+    # Check that markdown link with attributes is converted correctly
+    assert 'target="_blank"' in decoded_response
+    assert 'rel="noopener"' in decoded_response
+    assert '<a href="https://example.com"' in decoded_response
+    assert "our site</a>" in decoded_response

@@ -15,8 +15,9 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
         "message", "This is a default notification message."
     )
     # Convert markdown to HTML (inline only, no <p> tags)
+    # attr_list extension allows syntax like: [link](url){:target="_blank"}
     message = markdown.markdown(
-        message_raw, extensions=["extra"], output_format="html"
+        message_raw, extensions=["extra", "attr_list"], output_format="html"
     ).strip()
     # Remove wrapping <p> tags if present (for inline rendering)
     if message.startswith("<p>") and message.endswith("</p>"):
