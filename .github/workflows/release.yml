@@ -12,6 +12,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/platzky-msgbar
     steps:
       - name: Create release and publish to PyPI
         uses: raven-wing/ez-python-release@v1
