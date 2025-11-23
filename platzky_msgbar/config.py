@@ -24,7 +24,8 @@ class MsgBarConfig(BaseModel):
     )
 
     text_color: Optional[str] = Field(
-        default=None, description="CSS color value for text (hex, rgb/rgba, hsl/hsla, or color name)"
+        default=None,
+        description="CSS color value for text (hex, rgb/rgba, hsl/hsla, or color name)",
     )
 
     font_family: Optional[str] = Field(
