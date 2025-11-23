@@ -1,25 +1,21 @@
-name: Release to pypi
+name: Release to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   release:
-    permissions:
-      id-token: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5.3.0
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Create release and publish to PyPI
+        uses: raven-wing/ez-python-release@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          python-version: "3.10"
+          publish_to_pypi: "true"
