@@ -87,8 +87,8 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
 }}
 
 #MsgBar .msg-content {{
-    flex: 1;             /* zajmuje całą szerokość */
-    text-align: center;  /* wyśrodkowanie napisu */
+    flex: 1;             /* takes full width */
+    text-align: center;  /* centers the text */
 }}
 
 #MsgBar .msg-content a {{
@@ -103,8 +103,8 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
 }}
 
 #MsgBar .close-btn {{
-    position: relative;  /* wymagane przez testy */
-    margin-left: auto;   /* dociąga maksymalnie w prawo */
+    position: relative;  /* required by tests */
+    margin-left: auto;   /* pushes to the right */
     font-weight: bold;
     font-size: 16px;
     color: {text_color};

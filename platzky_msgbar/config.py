@@ -20,11 +20,11 @@ class MsgBarConfig(BaseModel):
 
     background_color: Optional[str] = Field(
         default=None,
-        description="CSS color value for background (hex, rgb, or color name)",
+        description="CSS color value for background (hex, rgb/rgba, hsl/hsla, or color name)",
     )
 
     text_color: Optional[str] = Field(
-        default=None, description="CSS color value for text (hex, rgb, or color name)"
+        default=None, description="CSS color value for text (hex, rgb/rgba, hsl/hsla, or color name)"
     )
 
     font_family: Optional[str] = Field(
