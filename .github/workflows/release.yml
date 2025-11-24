@@ -16,9 +16,7 @@ jobs:
       - name: Create release and publish to PyPI
         uses: raven-wing/ez-python-release@initial
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           python-version: "3.10"
-          publish_to_pypi: "false"
           github_app_id: ${{ secrets.MY_RELEASER_ID }}
           github_app_private_key: ${{ secrets.MY_RELEASER_PRIVATE_KEY }}
 
