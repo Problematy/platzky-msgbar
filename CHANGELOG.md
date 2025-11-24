@@ -5,6 +5,9 @@
 
 ### Bug Fixes
 
+- Plugin fials if config not provided ([#8](https://github.com/Problematy/platzky-msgbar/pull/8),
+  [`183532f`](https://github.com/Problematy/platzky-msgbar/commit/183532f1bfa1ffc1118b9f51d713fd3974c1e538))
+
 - Removed extra pipeline arguments ([#7](https://github.com/Problematy/platzky-msgbar/pull/7),
   [`c29600a`](https://github.com/Problematy/platzky-msgbar/commit/c29600a686a8c0e8a9c28c0159601780591a49e6))
 
