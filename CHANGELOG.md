@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.1.5 (2025-11-24)
+
+### Bug Fixes
+
+- New way of building ([#11](https://github.com/Problematy/platzky-msgbar/pull/11),
+  [`0c4df9c`](https://github.com/Problematy/platzky-msgbar/commit/0c4df9c6040f3112036fb0d8bdc7bfa9012a847d))
+
+- Readme more accurate ([#10](https://github.com/Problematy/platzky-msgbar/pull/10),
+  [`2a90d35`](https://github.com/Problematy/platzky-msgbar/commit/2a90d35c39d196caad1e09361d1c043b92e8f92c))
+
+
 ## v0.1.4 (2025-11-24)
 
 ### Bug Fixes
