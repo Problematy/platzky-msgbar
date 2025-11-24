@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.1.2 (2025-11-24)
+
+### Bug Fixes
+
+- Removed extra pipeline arguments ([#7](https://github.com/Problematy/platzky-msgbar/pull/7),
+  [`c29600a`](https://github.com/Problematy/platzky-msgbar/commit/c29600a686a8c0e8a9c28c0159601780591a49e6))
+
+- Added new argument to pipeline ([#6](https://github.com/Problematy/platzky-msgbar/pull/6),
+  [`ec31483`](https://github.com/Problematy/platzky-msgbar/commit/ec31483def5374977e6a4794b1c436df2a836c68))
+
+- More secure way of uploading artifacts ([#5](https://github.com/Problematy/platzky-msgbar/pull/5),
+  [`423366e`](https://github.com/Problematy/platzky-msgbar/commit/423366eb3b5c2d2362aab9094cbd8fc8bd1819b4))
+
+
 ## v0.1.1 (2025-11-23)
 
 ### Bug Fixes
