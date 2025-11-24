@@ -10,7 +10,6 @@ readme = "README.md"
 python = "^3.10"
 pydantic = "^2.10.3"
 pydantic-extra-types = "^2.10.1"
-gql = "^3.5.0"
 markdown = "^3.10"
 bleach = "^6.1.0"
 
