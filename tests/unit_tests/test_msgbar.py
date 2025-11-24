@@ -666,3 +666,39 @@ def test_msgbar_accepts_valid_css_sizes():
     # Valid sizes should be accepted
     assert "font-size: 16px" in decoded_response
     assert "padding-top: 2rem" in decoded_response
+
+
+def test_msgbar_requires_message_field():
+    """Test that omitting the message field causes a validation error"""
+    import pytest
+    from platzky.plugin_loader import PluginError
+
+    data_with_plugin: Dict[str, Any] = {
+        "APP_NAME": "testingApp",
+        "SECRET_KEY": "secret",
+        "USE_WWW": False,
+        "BLOG_PREFIX": "/",
+        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
+        "DB": {
+            "TYPE": "json",
+            "DATA": {
+                "site_content": {"pages": []},
+                "plugins": [
+                    {
+                        "name": "msgbar",
+                        "config": {},  # Missing required 'message' field
+                    }
+                ],
+            },
+        },
+    }
+
+    config_with_plugin = Config.model_validate(data_with_plugin)
+
+    # Creating the app should raise a PluginError wrapping the ValidationError
+    with pytest.raises(PluginError) as exc_info:
+        create_app_from_config(config_with_plugin)
+
+    # Verify the error is about the missing 'message' field
+    assert "message" in str(exc_info.value).lower()
+    assert "field required" in str(exc_info.value).lower()

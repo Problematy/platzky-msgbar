@@ -13,8 +13,7 @@ class MsgBarConfig(BaseModel):
     All CSS values are validated to prevent CSS injection attacks.
     """
 
-    message: Optional[str] = Field(
-        default="This is a default notification message.",
+    message: str = Field(
         description="The message to display in the bar (supports Markdown)",
     )
 

@@ -14,7 +14,7 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
     # Convert markdown to HTML (inline only, no <p> tags)
     # attr_list extension allows syntax like: [link](url){:target="_blank"}
     message_html = markdown.markdown(
-        config.message or "This is a default notification message.",
+        config.message,
         extensions=["extra", "attr_list"],
         output_format="html",
     ).strip()
