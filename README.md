@@ -1,4 +1,4 @@
-# b4uLeave Plugin
+# Msgbar Plugin
 
 ## Overview
 
