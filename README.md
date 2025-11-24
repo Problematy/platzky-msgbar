@@ -41,11 +41,7 @@ You can also use link attributes:
 }
 ```
 
-If you omit `message`, it defaults to:
-
-```text
-This is a default notification message.
-```
+The `message` field is required. If you don't provide it, the plugin configuration will fail validation.
 
 ## Security
 
