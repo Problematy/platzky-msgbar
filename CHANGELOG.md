@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
-## v0.1.2 (2025-11-24)
+## v0.1.4 (2025-11-24)
+
+### Bug Fixes
+
+- Removed not used dependency ([#9](https://github.com/Problematy/platzky-msgbar/pull/9),
+  [`bd70e75`](https://github.com/Problematy/platzky-msgbar/commit/bd70e7538d01893c4bda517267e5966adbab9cd5))
+
+
+## v0.1.3 (2025-11-24)
 
 ### Bug Fixes
 
