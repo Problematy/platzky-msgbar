@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.6 (2025-11-24)
+
+### Bug Fixes
+
+- Path added to pipeline artifacts ([#12](https://github.com/Problematy/platzky-msgbar/pull/12),
+  [`afd80c8`](https://github.com/Problematy/platzky-msgbar/commit/afd80c873c161a8d453f1a351e29a067ddc75f5d))
+
+
 ## v0.1.5 (2025-11-24)
 
 ### Bug Fixes
