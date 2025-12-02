@@ -267,9 +267,10 @@ def test_msgbar_sanitizes_event_handlers():
 
     # onclick attribute should be stripped from the message content links
     # The malicious onclick should not appear in the message link
-    assert (
-        "onclick" not in msgbar_content or 'onclick="document.getElementById' in html
-    )  # Allow close button onclick
+    # No inline onclick handlers are allowed inside message content
+    assert "onclick" not in msgbar_content
+    # But the close button's onclick (outside msg-content) should still exist
+    assert 'onclick="document.getElementById' in html
     assert "alert('XSS')" not in msgbar_content
     # The safe parts should still be present in the message content
     assert '<a href="https://example.com"' in msgbar_content
