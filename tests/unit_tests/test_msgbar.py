@@ -1,6 +1,7 @@
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from platzky.platzky import create_app_from_config, Config
+from flask import Flask
 
 
 def _get_test_page():
@@ -19,9 +20,25 @@ def _get_test_page():
     }
 
 
-def test_that_plugin_loads_msgbar():
+def _create_test_config(
+    plugin_config: Dict[str, Any],
+    site_content: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Create test configuration with plugin settings.
 
-    data_with_plugin: Dict[str, Any] = {
+    Args:
+        plugin_config: Plugin configuration dictionary
+        site_content: Optional site content overrides (for theme defaults)
+
+    Returns:
+        Complete configuration dictionary for Platzky
+    """
+    base_site_content = {"pages": [_get_test_page()]}
+    if site_content:
+        base_site_content.update(site_content)
+
+    return {
         "APP_NAME": "testingApp",
         "SECRET_KEY": "secret",
         "USE_WWW": False,
@@ -30,277 +47,186 @@ def test_that_plugin_loads_msgbar():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Your custom message goes here",
-                        },
-                    }
-                ],
+                "site_content": base_site_content,
+                "plugins": [{"name": "msgbar", "config": plugin_config}],
             },
         },
     }
 
-    # expected data
-    msgbar_function = "MsgBar"
-    custom_message = "Your custom message goes here"
 
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
+def _create_app_with_plugin(
+    plugin_config: Dict[str, Any], site_content: Optional[Dict[str, Any]] = None
+) -> Flask:
+    """
+    Create Flask app with msgbar plugin configured.
 
-    response = app_with_plugin.test_client().get("/page/test")
+    Args:
+        plugin_config: Plugin configuration dictionary
+        site_content: Optional site content overrides (for theme defaults)
 
+    Returns:
+        Configured Flask application
+    """
+    data = _create_test_config(plugin_config, site_content)
+    config = Config.model_validate(data)
+    return create_app_from_config(config)
+
+
+def _get_response_html(app: Flask, path: str = "/page/test") -> str:
+    """
+    Get decoded HTML response from app.
+
+    Args:
+        app: Flask application
+        path: Request path (default: /page/test)
+
+    Returns:
+        Decoded HTML response as string
+    """
+    response = app.test_client().get(path)
     assert response.status_code == 200
-    decoded_response = response.data.decode()
+    return response.data.decode()
 
-    assert msgbar_function in decoded_response
-    assert custom_message in decoded_response
+
+def _extract_msgbar_content(html: str) -> str:
+    """
+    Extract message bar content from HTML response.
+
+    Args:
+        html: Full HTML response
+
+    Returns:
+        Message bar content (text inside msg-content div)
+    """
+    match = re.search(r'<div class="msg-content">(.*?)</div>', html, re.DOTALL)
+    assert match is not None, "MsgBar content not found in HTML"
+    return match.group(1)
+
+
+def _extract_msgbar_style(html: str) -> str:
+    """
+    Extract message bar CSS from HTML response.
+
+    Args:
+        html: Full HTML response
+
+    Returns:
+        Message bar CSS (content inside MsgBarStyle tag)
+    """
+    match = re.search(r'<style id="MsgBarStyle">(.*?)</style>', html, re.DOTALL)
+    assert match is not None, "MsgBarStyle not found in HTML"
+    return match.group(1)
+
+
+def test_that_plugin_loads_msgbar():
+    """Test that the plugin loads and injects the message bar."""
+    app = _create_app_with_plugin({"message": "Your custom message goes here"})
+    html = _get_response_html(app)
+
+    assert "MsgBar" in html
+    assert "Your custom message goes here" in html
 
 
 def test_msgbar_with_custom_styling():
-
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Styled message",
-                            "background_color": "#ff5733",
-                            "text_color": "#ffffff",
-                            "font_family": "'Courier New', monospace",
-                            "font_size": "16px",
-                            "bar_height": "40px",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-
-    assert response.status_code == 200
-    decoded_response = response.data.decode()
+    """Test that custom styling options are applied correctly."""
+    app = _create_app_with_plugin(
+        {
+            "message": "Styled message",
+            "background_color": "#ff5733",
+            "text_color": "#ffffff",
+            "font_family": "'Courier New', monospace",
+            "font_size": "16px",
+            "bar_height": "40px",
+        }
+    )
+    html = _get_response_html(app)
 
     # Check that custom styling is applied
-    assert "background-color: #ff5733" in decoded_response
-    assert "color: #ffffff" in decoded_response
-    assert "font-family: 'Courier New', monospace" in decoded_response
-    assert "font-size: 16px" in decoded_response
-    assert "padding-top: 40px" in decoded_response
-    assert "Styled message" in decoded_response
+    assert "background-color: #ff5733" in html
+    assert "color: #ffffff" in html
+    assert "font-family: 'Courier New', monospace" in html
+    assert "font-size: 16px" in html
+    assert "padding-top: 40px" in html
+    assert "Styled message" in html
 
 
 def test_msgbar_with_platzky_theme_defaults():
-
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {
-                    "pages": [_get_test_page()],
-                    "primary_color": "#123456",
-                    "secondary_color": "#abcdef",
-                    "font": "Roboto",
-                },
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Message with theme defaults",
-                        },
-                    }
-                ],
-            },
-        },
+    """Test that Platzky theme defaults from DB are used when plugin config is not provided."""
+    site_content = {
+        "primary_color": "#123456",
+        "secondary_color": "#abcdef",
+        "font": "Roboto",
     }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-
-    assert response.status_code == 200
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {"message": "Message with theme defaults"}, site_content
+    )
+    html = _get_response_html(app)
 
     # Check that Platzky theme defaults from DB are used
-    assert "background-color: #123456" in decoded_response
-    assert "color: #abcdef" in decoded_response
-    assert "font-family: 'Roboto', sans-serif" in decoded_response
-    assert "Message with theme defaults" in decoded_response
+    assert "background-color: #123456" in html
+    assert "color: #abcdef" in html
+    assert "font-family: 'Roboto', sans-serif" in html
+    assert "Message with theme defaults" in html
 
 
 def test_msgbar_with_markdown_links():
-
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Check out [our website](https://example.com) for more info!",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-
-    assert response.status_code == 200
-    decoded_response = response.data.decode()
+    """Test that markdown links are converted to HTML."""
+    app = _create_app_with_plugin(
+        {
+            "message": "Check out [our website](https://example.com) for more info!",
+        }
+    )
+    html = _get_response_html(app)
 
     # Check that markdown link is converted to HTML
-    assert '<a href="https://example.com">' in decoded_response
-    assert "our website</a>" in decoded_response
+    assert '<a href="https://example.com">' in html
+    assert "our website</a>" in html
     # Check that the original markdown syntax is NOT present
-    assert "[our website]" not in decoded_response
-    assert "(https://example.com)" not in decoded_response
+    assert "[our website]" not in html
+    assert "(https://example.com)" not in html
 
 
 def test_msgbar_with_multiple_markdown_links():
-
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Visit [Google](https://google.com) or [GitHub](https://github.com)",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-
-    assert response.status_code == 200
-    decoded_response = response.data.decode()
+    """Test that multiple markdown links are converted to HTML."""
+    app = _create_app_with_plugin(
+        {
+            "message": "Visit [Google](https://google.com) or [GitHub](https://github.com)",
+        }
+    )
+    html = _get_response_html(app)
 
     # Check that both markdown links are converted to HTML
-    assert '<a href="https://google.com">' in decoded_response
-    assert "Google</a>" in decoded_response
-    assert '<a href="https://github.com">' in decoded_response
-    assert "GitHub</a>" in decoded_response
+    assert '<a href="https://google.com">' in html
+    assert "Google</a>" in html
+    assert '<a href="https://github.com">' in html
+    assert "GitHub</a>" in html
 
 
 def test_msgbar_with_markdown_link_attributes():
-
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": 'Visit [our site](https://example.com){:target="_blank" rel="noopener"}',
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-
-    assert response.status_code == 200
-    decoded_response = response.data.decode()
+    """Test that markdown link attributes are properly converted."""
+    app = _create_app_with_plugin(
+        {
+            "message": 'Visit [our site](https://example.com){:target="_blank" rel="noopener"}',
+        }
+    )
+    html = _get_response_html(app)
 
     # Check that markdown link with attributes is converted correctly
-    assert 'target="_blank"' in decoded_response
-    assert 'rel="noopener"' in decoded_response
-    assert '<a href="https://example.com"' in decoded_response
-    assert "our site</a>" in decoded_response
+    assert 'target="_blank"' in html
+    assert 'rel="noopener"' in html
+    assert '<a href="https://example.com"' in html
+    assert "our site</a>" in html
 
 
 def test_msgbar_sanitizes_script_tags():
     """Test that script tags are stripped to prevent XSS attacks"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Hello <script>alert('XSS')</script> World",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
-
-    # Extract the message bar content specifically
-    msgbar_match = re.search(r'<div class="msg-content">(.*?)</div>', decoded_response)
-    assert msgbar_match is not None
-    msgbar_content = msgbar_match.group(1)
+    app = _create_app_with_plugin(
+        {
+            "message": "Hello <script>alert('XSS')</script> World",
+        }
+    )
+    html = _get_response_html(app)
+    msgbar_content = _extract_msgbar_content(html)
 
     # Script tags should be completely removed from message content
     assert "<script>" not in msgbar_content
@@ -315,83 +241,34 @@ def test_msgbar_sanitizes_script_tags():
 
 def test_msgbar_sanitizes_javascript_urls():
     """Test that javascript: URLs are blocked"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "[Click me](javascript:alert('XSS'))",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "[Click me](javascript:alert('XSS'))",
+        }
+    )
+    html = _get_response_html(app)
 
     # javascript: URL should be blocked - the entire href should be removed
-    assert "javascript:" not in decoded_response
-    assert "alert('XSS')" not in decoded_response
+    assert "javascript:" not in html
+    assert "alert('XSS')" not in html
     # The link text should still be present but without the dangerous href
-    assert "Click me" in decoded_response
+    assert "Click me" in html
 
 
 def test_msgbar_sanitizes_event_handlers():
     """Test that event handlers like onclick are stripped"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "[Link](https://example.com){:onclick=\"alert('XSS')\"}",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
-
-    # Extract the message bar content specifically
-    msgbar_match = re.search(
-        r'<div class="msg-content">(.*?)</div>', decoded_response, re.DOTALL
+    app = _create_app_with_plugin(
+        {
+            "message": "[Link](https://example.com){:onclick=\"alert('XSS')\"}",
+        }
     )
-    assert msgbar_match is not None
-    msgbar_content = msgbar_match.group(1)
+    html = _get_response_html(app)
+    msgbar_content = _extract_msgbar_content(html)
 
     # onclick attribute should be stripped from the message content links
     # The malicious onclick should not appear in the message link
     assert (
-        "onclick" not in msgbar_content
-        or 'onclick="document.getElementById' in decoded_response
+        "onclick" not in msgbar_content or 'onclick="document.getElementById' in html
     )  # Allow close button onclick
     assert "alert('XSS')" not in msgbar_content
     # The safe parts should still be present in the message content
@@ -405,82 +282,34 @@ def test_msgbar_sanitizes_event_handlers():
 
 def test_msgbar_sanitizes_raw_html():
     """Test that raw HTML tags not in allowlist are stripped"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Safe <strong>bold</strong> and <iframe src='evil.com'></iframe> unsafe",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "Safe <strong>bold</strong> and <iframe src='evil.com'></iframe> unsafe",
+        }
+    )
+    html = _get_response_html(app)
 
     # Allowed tag (strong) should be present
-    assert "<strong>bold</strong>" in decoded_response
+    assert "<strong>bold</strong>" in html
     # Disallowed tag (iframe) should be stripped
-    assert "<iframe" not in decoded_response
-    assert "</iframe>" not in decoded_response
-    assert "evil.com" not in decoded_response
+    assert "<iframe" not in html
+    assert "</iframe>" not in html
+    assert "evil.com" not in html
     # The safe content should remain
-    assert "Safe" in decoded_response
-    assert "unsafe" in decoded_response
+    assert "Safe" in html
+    assert "unsafe" in html
 
 
 def test_msgbar_blocks_css_injection_in_background_color():
     """Test that CSS injection attempts in background_color are blocked"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "background_color": "red; } body { display: none; } #foo {",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
-
-    # Extract the MsgBar CSS specifically
-    msgbar_style_match = re.search(
-        r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "background_color": "red; } body { display: none; } #foo {",
+        }
     )
-    assert msgbar_style_match is not None
-    msgbar_style = msgbar_style_match.group(1)
+    html = _get_response_html(app)
+    msgbar_style = _extract_msgbar_style(html)
 
     # CSS injection should be blocked - the malicious CSS should not appear in MsgBar styles
     assert "display: none" not in msgbar_style
@@ -493,195 +322,84 @@ def test_msgbar_blocks_css_injection_in_background_color():
 
 def test_msgbar_blocks_css_injection_in_font_family():
     """Test that CSS injection attempts in font_family are blocked"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "font_family": "Arial'; } body { background: url('http://evil.com'); } #foo { font-family: '",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_family": "Arial'; } body { background: url('http://evil.com'); } #foo { font-family: '",
+        }
+    )
+    html = _get_response_html(app)
 
     # CSS injection should be blocked
-    assert "evil.com" not in decoded_response
+    assert "evil.com" not in html
     # Default font family should be used
-    assert "font-family: 'Arial', sans-serif" in decoded_response
+    assert "font-family: 'Arial', sans-serif" in html
 
 
 def test_msgbar_blocks_css_url_function():
     """Test that url() functions in CSS values are blocked"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "font_family": "url('http://evil.com/font.woff')",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
-
-    # Extract the MsgBar CSS specifically
-    msgbar_style_match = re.search(
-        r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_family": "url('http://evil.com/font.woff')",
+        }
     )
-    assert msgbar_style_match is not None
-    msgbar_style = msgbar_style_match.group(1)
+    html = _get_response_html(app)
+    msgbar_style = _extract_msgbar_style(html)
 
     # url() function should be blocked in MsgBar CSS
     assert "url(" not in msgbar_style
-    assert "evil.com" not in decoded_response
+    assert "evil.com" not in html
 
 
 def test_msgbar_validates_css_size_values():
     """Test that invalid CSS size values are rejected"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "font_size": "14px; color: red;",
-                            "bar_height": "calc(100vh - 10px)",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_size": "14px; color: red;",
+            "bar_height": "calc(100vh - 10px)",
+        }
+    )
+    html = _get_response_html(app)
 
     # Invalid size values should be rejected and defaults used
-    assert "font-size: 14px" in decoded_response  # Default
-    assert "color: red" not in decoded_response  # CSS injection blocked
-    assert "calc(" not in decoded_response  # CSS function blocked
-    assert "padding-top: 30px" in decoded_response  # Default height
+    assert "font-size: 14px" in html  # Default
+    assert "color: red" not in html  # CSS injection blocked
+    assert "calc(" not in html  # CSS function blocked
+    assert "padding-top: 30px" in html  # Default height
 
 
 def test_msgbar_accepts_valid_css_colors():
     """Test that valid CSS color values are accepted"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "background_color": "#ff5733",
-                            "text_color": "rgb(255, 255, 255)",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "background_color": "#ff5733",
+            "text_color": "rgb(255, 255, 255)",
+        }
+    )
+    html = _get_response_html(app)
 
     # Valid colors should be accepted
-    assert "background-color: #ff5733" in decoded_response
-    assert "color: rgb(255, 255, 255)" in decoded_response
+    assert "background-color: #ff5733" in html
+    assert "color: rgb(255, 255, 255)" in html
 
 
 def test_msgbar_accepts_valid_css_sizes():
     """Test that valid CSS size values are accepted"""
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": [_get_test_page()]},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {
-                            "message": "Test",
-                            "font_size": "16px",
-                            "bar_height": "2rem",
-                        },
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
-    app_with_plugin = create_app_from_config(config_with_plugin)
-
-    response = app_with_plugin.test_client().get("/page/test")
-    decoded_response = response.data.decode()
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_size": "16px",
+            "bar_height": "2rem",
+        }
+    )
+    html = _get_response_html(app)
 
     # Valid sizes should be accepted
-    assert "font-size: 16px" in decoded_response
-    assert "padding-top: 2rem" in decoded_response
+    assert "font-size: 16px" in html
+    assert "padding-top: 2rem" in html
 
 
 def test_msgbar_requires_message_field():
@@ -689,31 +407,12 @@ def test_msgbar_requires_message_field():
     import pytest
     from platzky.plugin_loader import PluginError
 
-    data_with_plugin: Dict[str, Any] = {
-        "APP_NAME": "testingApp",
-        "SECRET_KEY": "secret",
-        "USE_WWW": False,
-        "BLOG_PREFIX": "/",
-        "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
-        "DB": {
-            "TYPE": "json",
-            "DATA": {
-                "site_content": {"pages": []},
-                "plugins": [
-                    {
-                        "name": "msgbar",
-                        "config": {},  # Missing required 'message' field
-                    }
-                ],
-            },
-        },
-    }
-
-    config_with_plugin = Config.model_validate(data_with_plugin)
+    data = _create_test_config({})  # Missing required 'message' field
+    config = Config.model_validate(data)
 
     # Creating the app should raise a PluginError wrapping the ValidationError
     with pytest.raises(PluginError) as exc_info:
-        create_app_from_config(config_with_plugin)
+        create_app_from_config(config)
 
     # Verify the error is about the missing 'message' field
     assert "message" in str(exc_info.value).lower()
