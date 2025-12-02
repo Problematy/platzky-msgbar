@@ -1,3 +1,5 @@
+"""Platzky msgbar plugin entrypoint that injects a message bar into HTML responses."""
+
 from flask import Response
 from typing import Any, Dict
 import markdown
@@ -7,6 +9,27 @@ from platzky_msgbar.config import MsgBarConfig
 
 
 def process(app: Engine, plugin_config: Dict[str, Any]):
+    """
+    Process and inject a message bar into the Flask application.
+
+    This function configures the msgbar plugin by:
+    1. Validating the plugin configuration using Pydantic (prevents CSS injection)
+    2. Converting markdown message to HTML and sanitizing it (prevents XSS)
+    3. Retrieving theme defaults from the Platzky database
+    4. Registering an after_request hook to inject the message bar HTML/CSS
+
+    Args:
+        app: The Flask Engine instance to modify
+        plugin_config: Dictionary containing plugin configuration with required 'message'
+                      field and optional styling fields (background_color, text_color,
+                      font_family, font_size, bar_height)
+
+    Returns:
+        The modified Flask Engine instance with message bar functionality
+
+    Raises:
+        pydantic.ValidationError: If the plugin configuration is invalid
+    """
     # Validate and sanitize config using Pydantic model
     # This protects against CSS injection attacks
     config = MsgBarConfig(**plugin_config)
@@ -64,6 +87,19 @@ def process(app: Engine, plugin_config: Dict[str, Any]):
 
     @app.after_request
     def inject_msg_bar(response: Response) -> Response:
+        """
+        Inject message bar HTML and CSS into HTML responses.
+
+        This Flask after_request hook intercepts HTML responses and injects
+        the message bar styles and HTML before the closing </head> tag.
+
+        Args:
+            response: The Flask Response object to modify
+
+        Returns:
+            The modified Response object with injected message bar (if HTML)
+            or the original response unchanged (if not HTML)
+        """
         if "text/html" in response.headers.get("Content-Type", ""):
             bar_html = f"""
 <style id="MsgBarStyle">
