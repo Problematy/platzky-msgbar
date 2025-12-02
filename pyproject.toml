@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "platzky_msgbar"
-version = "0.1.6"
+version = "0.1.7"
 description = "A Platzky plugin to show a message bar above the page"
 authors = []
 license = "MIT"

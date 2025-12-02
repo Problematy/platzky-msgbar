@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.1.7 (2025-12-02)
+
+### Bug Fixes
+
+- Update msgbar tests with test page data
+  ([#13](https://github.com/Problematy/platzky-msgbar/pull/13),
+  [`32cd516`](https://github.com/Problematy/platzky-msgbar/commit/32cd5161aef550276554b4815e4e0ad9df5b1672))
+
+
 ## v0.1.6 (2025-11-24)
 
 ### Bug Fixes
