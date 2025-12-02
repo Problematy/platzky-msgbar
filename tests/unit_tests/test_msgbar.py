@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict
 from platzky.platzky import create_app_from_config, Config
 
@@ -297,8 +298,6 @@ def test_msgbar_sanitizes_script_tags():
     decoded_response = response.data.decode()
 
     # Extract the message bar content specifically
-    import re
-
     msgbar_match = re.search(r'<div class="msg-content">(.*?)</div>', decoded_response)
     assert msgbar_match is not None
     msgbar_content = msgbar_match.group(1)
@@ -382,8 +381,6 @@ def test_msgbar_sanitizes_event_handlers():
     decoded_response = response.data.decode()
 
     # Extract the message bar content specifically
-    import re
-
     msgbar_match = re.search(
         r'<div class="msg-content">(.*?)</div>', decoded_response, re.DOTALL
     )
@@ -479,8 +476,6 @@ def test_msgbar_blocks_css_injection_in_background_color():
     decoded_response = response.data.decode()
 
     # Extract the MsgBar CSS specifically
-    import re
-
     msgbar_style_match = re.search(
         r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
     )
@@ -565,8 +560,6 @@ def test_msgbar_blocks_css_url_function():
     decoded_response = response.data.decode()
 
     # Extract the MsgBar CSS specifically
-    import re
-
     msgbar_style_match = re.search(
         r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
     )
