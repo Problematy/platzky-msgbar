@@ -2,6 +2,22 @@ from typing import Any, Dict
 from platzky.platzky import create_app_from_config, Config
 
 
+def _get_test_page():
+    """Helper to create a minimal test page for unit tests"""
+    return {
+        "title": "Test Page",
+        "slug": "test",
+        "coverImage": {"url": "", "alternateText": ""},
+        "date": "01-01-2024",
+        "author": "",
+        "comments": [],
+        "excerpt": "",
+        "tags": [],
+        "language": "en",
+        "contentInMarkdown": "Test content",
+    }
+
+
 def test_that_plugin_loads_msgbar():
 
     data_with_plugin: Dict[str, Any] = {
@@ -13,7 +29,7 @@ def test_that_plugin_loads_msgbar():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -33,9 +49,9 @@ def test_that_plugin_loads_msgbar():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     assert msgbar_function in decoded_response
@@ -53,7 +69,7 @@ def test_msgbar_with_custom_styling():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -74,9 +90,9 @@ def test_msgbar_with_custom_styling():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     # Check that custom styling is applied
@@ -100,7 +116,7 @@ def test_msgbar_with_platzky_theme_defaults():
             "TYPE": "json",
             "DATA": {
                 "site_content": {
-                    "pages": [],
+                    "pages": [_get_test_page()],
                     "primary_color": "#123456",
                     "secondary_color": "#abcdef",
                     "font": "Roboto",
@@ -120,9 +136,9 @@ def test_msgbar_with_platzky_theme_defaults():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     # Check that Platzky theme defaults from DB are used
@@ -143,7 +159,7 @@ def test_msgbar_with_markdown_links():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -159,9 +175,9 @@ def test_msgbar_with_markdown_links():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     # Check that markdown link is converted to HTML
@@ -183,7 +199,7 @@ def test_msgbar_with_multiple_markdown_links():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -199,9 +215,9 @@ def test_msgbar_with_multiple_markdown_links():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     # Check that both markdown links are converted to HTML
@@ -222,7 +238,7 @@ def test_msgbar_with_markdown_link_attributes():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -238,9 +254,9 @@ def test_msgbar_with_markdown_link_attributes():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     decoded_response = response.data.decode()
 
     # Check that markdown link with attributes is converted correctly
@@ -261,7 +277,7 @@ def test_msgbar_sanitizes_script_tags():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -277,7 +293,7 @@ def test_msgbar_sanitizes_script_tags():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Extract the message bar content specifically
@@ -309,7 +325,7 @@ def test_msgbar_sanitizes_javascript_urls():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -325,7 +341,7 @@ def test_msgbar_sanitizes_javascript_urls():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # javascript: URL should be blocked - the entire href should be removed
@@ -346,7 +362,7 @@ def test_msgbar_sanitizes_event_handlers():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -362,7 +378,7 @@ def test_msgbar_sanitizes_event_handlers():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Extract the message bar content specifically
@@ -401,7 +417,7 @@ def test_msgbar_sanitizes_raw_html():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -417,7 +433,7 @@ def test_msgbar_sanitizes_raw_html():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Allowed tag (strong) should be present
@@ -442,7 +458,7 @@ def test_msgbar_blocks_css_injection_in_background_color():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -459,7 +475,7 @@ def test_msgbar_blocks_css_injection_in_background_color():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Extract the MsgBar CSS specifically
@@ -491,7 +507,7 @@ def test_msgbar_blocks_css_injection_in_font_family():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -508,7 +524,7 @@ def test_msgbar_blocks_css_injection_in_font_family():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # CSS injection should be blocked
@@ -528,7 +544,7 @@ def test_msgbar_blocks_css_url_function():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -545,13 +561,20 @@ def test_msgbar_blocks_css_url_function():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
-    # url() function should be blocked
-    assert (
-        "url(" not in decoded_response or "url(data:" in decoded_response
-    )  # Allow data URLs from other sources
+    # Extract the MsgBar CSS specifically
+    import re
+
+    msgbar_style_match = re.search(
+        r'<style id="MsgBarStyle">(.*?)</style>', decoded_response, re.DOTALL
+    )
+    assert msgbar_style_match is not None
+    msgbar_style = msgbar_style_match.group(1)
+
+    # url() function should be blocked in MsgBar CSS
+    assert "url(" not in msgbar_style
     assert "evil.com" not in decoded_response
 
 
@@ -566,7 +589,7 @@ def test_msgbar_validates_css_size_values():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -584,7 +607,7 @@ def test_msgbar_validates_css_size_values():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Invalid size values should be rejected and defaults used
@@ -605,7 +628,7 @@ def test_msgbar_accepts_valid_css_colors():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -623,7 +646,7 @@ def test_msgbar_accepts_valid_css_colors():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Valid colors should be accepted
@@ -642,7 +665,7 @@ def test_msgbar_accepts_valid_css_sizes():
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": {"pages": []},
+                "site_content": {"pages": [_get_test_page()]},
                 "plugins": [
                     {
                         "name": "msgbar",
@@ -660,7 +683,7 @@ def test_msgbar_accepts_valid_css_sizes():
     config_with_plugin = Config.model_validate(data_with_plugin)
     app_with_plugin = create_app_from_config(config_with_plugin)
 
-    response = app_with_plugin.test_client().get("/")
+    response = app_with_plugin.test_client().get("/page/test")
     decoded_response = response.data.decode()
 
     # Valid sizes should be accepted
