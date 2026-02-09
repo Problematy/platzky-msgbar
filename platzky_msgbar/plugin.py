@@ -1,5 +1,6 @@
 """Platzky msgbar plugin that injects a message bar into HTML responses."""
 
+import logging
 from typing import cast
 
 import bleach
@@ -8,6 +9,15 @@ from flask import Response
 from platzky.plugin.plugin import PluginBase
 
 from platzky_msgbar.config import MsgBarConfig
+
+logger = logging.getLogger(__name__)
+
+MSG_BAR_ID = "MsgBar"
+MSG_BAR_STYLE_ID = "MsgBarStyle"
+CLOSE_BUTTON_JS = (
+    f"document.getElementById('{MSG_BAR_ID}').remove();"
+    f"document.getElementById('{MSG_BAR_STYLE_ID}').remove();"
+)
 
 
 class MsgBarPlugin(PluginBase[MsgBarConfig]):
@@ -98,15 +108,20 @@ class MsgBarPlugin(PluginBase[MsgBarConfig]):
                 The modified Response object with injected message bar (if HTML)
                 or the original response unchanged (if not HTML)
             """
-            if "text/html" in response.headers.get("Content-Type", ""):
-                close_js = (
-                    "document.getElementById('MsgBar').remove();"
-                    "document.getElementById('MsgBarStyle').remove();"
-                )
-                bar_html = f"""
-<style id="MsgBarStyle">
+            if "text/html" not in response.headers.get("Content-Type", ""):
+                return response
 
-#MsgBar {{
+            try:
+                html = response.get_data(as_text=True)
+
+                if "</head>" not in html:
+                    logger.warning("No </head> tag found, msgbar not injected")
+                    return response
+
+                bar_html = f"""
+<style id="{MSG_BAR_STYLE_ID}">
+
+#{MSG_BAR_ID} {{
     position: fixed;
     top: 0;
     left: 0;
@@ -124,23 +139,23 @@ class MsgBarPlugin(PluginBase[MsgBarConfig]):
     padding: 5px 10px;
 }}
 
-#MsgBar .msg-content {{
+#{MSG_BAR_ID} .msg-content {{
     flex: 1;             /* takes full width */
     text-align: center;  /* centers the text */
 }}
 
-#MsgBar .msg-content a {{
+#{MSG_BAR_ID} .msg-content a {{
     color: inherit;
     text-decoration: underline;
     font-weight: bold;
 }}
 
-#MsgBar .msg-content a:hover {{
+#{MSG_BAR_ID} .msg-content a:hover {{
     text-decoration: none;
     opacity: 0.8;
 }}
 
-#MsgBar .close-btn {{
+#{MSG_BAR_ID} .close-btn {{
     position: relative;  /* required by tests */
     margin-left: auto;   /* pushes to the right */
     font-weight: bold;
@@ -156,15 +171,16 @@ body {{
 }}
 
 </style>
-<div id="MsgBar">
+<div id="{MSG_BAR_ID}">
     <div class="msg-content">{message}</div>
-    <button class="close-btn" onclick="{close_js}">&times;</button>
+    <button class="close-btn" onclick="{CLOSE_BUTTON_JS}">&times;</button>
 </div>
 """
 
-                html = response.get_data(as_text=True)
                 html = html.replace("</head>", bar_html + "</head>")
                 response.set_data(html)
+            except Exception:
+                logger.exception("Failed to inject message bar")
 
             return response
 

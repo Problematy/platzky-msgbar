@@ -417,3 +417,66 @@ def test_msgbar_requires_message_field():
     # Verify the error is about the missing 'message' field
     assert "message" in str(exc_info.value).lower()
     assert "field required" in str(exc_info.value).lower()
+
+
+def test_msgbar_not_injected_in_non_html_responses():
+    """Test that non-HTML responses are not modified."""
+    app = _create_app_with_plugin({"message": "Test"})
+
+    @app.route("/json-endpoint")
+    def json_endpoint():
+        from flask import jsonify
+
+        return jsonify({"key": "value"})
+
+    response = app.test_client().get("/json-endpoint")
+    assert response.status_code == 200
+    assert "MsgBar" not in response.data.decode()
+
+
+def test_msgbar_skips_html_without_head_tag():
+    """Test that responses without </head> tag are returned unchanged."""
+    app = _create_app_with_plugin({"message": "Test"})
+
+    @app.route("/no-head")
+    def no_head():
+        return "<html><body>Hello</body></html>"
+
+    response = app.test_client().get("/no-head")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "MsgBar" not in html
+    assert "Hello" in html
+
+
+def test_msgbar_config_explicit_none_colors():
+    """Test that explicitly passing None colors falls back to defaults."""
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "background_color": None,
+            "text_color": None,
+        }
+    )
+    html = _get_response_html(app)
+
+    # Should use Platzky DB defaults or hardcoded defaults
+    assert "MsgBar" in html
+
+
+def test_msgbar_config_explicit_none_sizes():
+    """Test that explicitly passing None sizes falls back to defaults."""
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_size": None,
+            "bar_height": None,
+            "font_family": None,
+        }
+    )
+    html = _get_response_html(app)
+
+    # Should use hardcoded defaults
+    assert "font-size: 14px" in html
+    assert "padding-top: 30px" in html
+    assert "font-family: 'Arial', sans-serif" in html

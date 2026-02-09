@@ -16,10 +16,14 @@ unit-tests:
 
 coverage:
 	poetry run coverage run --branch --source=platzky_msgbar -m pytest -m "not skip_coverage"
+	poetry run coverage report --fail-under=90
 	poetry run coverage lcov
 
 html-cov: coverage
 	poetry run coverage html
+
+audit:
+	poetry run pip-audit || true
 
 build:
 	poetry build

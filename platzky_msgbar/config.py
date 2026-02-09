@@ -16,6 +16,8 @@ class MsgBarConfig(PluginBaseConfig):
     """
 
     message: str = Field(
+        min_length=1,
+        max_length=500,
         description="The message to display in the bar (supports Markdown)",
     )
 

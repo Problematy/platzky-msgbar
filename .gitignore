@@ -15,5 +15,9 @@ dist
 .idea
 *~
 
+# virtual environments
+venv/
+.venv/
+
 # e2e test dependencies
 tests/e2e_tests/node_modules
