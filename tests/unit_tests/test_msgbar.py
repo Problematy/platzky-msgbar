@@ -1,7 +1,8 @@
 import re
 from typing import Any, Dict, Optional
-from platzky.platzky import create_app_from_config, Config
+
 from flask import Flask
+from platzky.platzky import Config, create_app_from_config
 
 
 def _get_test_page():
@@ -10,7 +11,7 @@ def _get_test_page():
         "title": "Test Page",
         "slug": "test",
         "coverImage": {"url": "", "alternateText": ""},
-        "date": "01-01-2024",
+        "date": "2024-01-01",
         "author": "",
         "comments": [],
         "excerpt": "",
@@ -157,9 +158,7 @@ def test_msgbar_with_platzky_theme_defaults():
         "secondary_color": "#abcdef",
         "font": "Roboto",
     }
-    app = _create_app_with_plugin(
-        {"message": "Message with theme defaults"}, site_content
-    )
+    app = _create_app_with_plugin({"message": "Message with theme defaults"}, site_content)
     html = _get_response_html(app)
 
     # Check that Platzky theme defaults from DB are used
@@ -231,9 +230,7 @@ def test_msgbar_sanitizes_script_tags():
     # Script tags should be completely removed from message content
     assert "<script>" not in msgbar_content
     assert "</script>" not in msgbar_content
-    assert (
-        "alert('XSS')" in msgbar_content
-    )  # Text content remains but tags are stripped
+    assert "alert('XSS')" in msgbar_content  # Text content remains but tags are stripped
     # The safe content should still be present
     assert "Hello" in msgbar_content
     assert "World" in msgbar_content
@@ -326,7 +323,9 @@ def test_msgbar_blocks_css_injection_in_font_family():
     app = _create_app_with_plugin(
         {
             "message": "Test",
-            "font_family": "Arial'; } body { background: url('http://evil.com'); } #foo { font-family: '",
+            "font_family": (
+                "Arial'; } body { background: url('http://evil.com'); }" " #foo { font-family: '"
+            ),
         }
     )
     html = _get_response_html(app)
@@ -406,13 +405,13 @@ def test_msgbar_accepts_valid_css_sizes():
 def test_msgbar_requires_message_field():
     """Test that omitting the message field causes a validation error"""
     import pytest
-    from platzky.plugin_loader import PluginError
+    from platzky.plugin.plugin import ConfigPluginError
 
     data = _create_test_config({})  # Missing required 'message' field
     config = Config.model_validate(data)
 
-    # Creating the app should raise a PluginError wrapping the ValidationError
-    with pytest.raises(PluginError) as exc_info:
+    # Creating the app should raise a ConfigPluginError wrapping the ValidationError
+    with pytest.raises(ConfigPluginError) as exc_info:
         create_app_from_config(config)
 
     # Verify the error is about the missing 'message' field

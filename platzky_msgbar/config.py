@@ -2,11 +2,13 @@
 
 import re
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+
+from platzky.plugin.plugin import PluginBaseConfig
+from pydantic import Field, field_validator
 from pydantic_extra_types.color import Color
 
 
-class MsgBarConfig(BaseModel):
+class MsgBarConfig(PluginBaseConfig):
     """
     Configuration model for the msgbar plugin.
 
@@ -27,9 +29,7 @@ class MsgBarConfig(BaseModel):
         description="CSS color value for text (hex, rgb/rgba, hsl/hsla, or color name)",
     )
 
-    font_family: Optional[str] = Field(
-        default=None, description="CSS font-family value"
-    )
+    font_family: Optional[str] = Field(default=None, description="CSS font-family value")
 
     font_size: Optional[str] = Field(
         default=None, description="CSS font-size value (e.g., '14px', '1rem')"

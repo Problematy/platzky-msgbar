@@ -1,0 +1,171 @@
+"""Platzky msgbar plugin that injects a message bar into HTML responses."""
+
+from typing import cast
+
+import bleach
+import markdown
+from flask import Response
+from platzky.plugin.plugin import PluginBase
+
+from platzky_msgbar.config import MsgBarConfig
+
+
+class MsgBarPlugin(PluginBase[MsgBarConfig]):
+    """Plugin that displays a customizable message bar at the top of web pages."""
+
+    @classmethod
+    def get_config_model(cls) -> type[MsgBarConfig]:
+        """Return the configuration model for this plugin."""
+        return MsgBarConfig
+
+    def process(self, app):
+        """Process and inject a message bar into the Flask application.
+
+        This method configures the msgbar plugin by:
+        1. Validating the plugin configuration using Pydantic (prevents CSS injection)
+        2. Converting markdown message to HTML and sanitizing it (prevents XSS)
+        3. Retrieving theme defaults from the Platzky database
+        4. Registering an after_request hook to inject the message bar HTML/CSS
+
+        Args:
+            app: The Platzky Engine instance to modify
+
+        Returns:
+            The modified Engine instance with message bar functionality
+        """
+        config = cast(MsgBarConfig, self.config)
+
+        # Convert markdown to HTML (inline only, no <p> tags)
+        # attr_list extension allows syntax like: [link](url){:target="_blank"}
+        message_html = markdown.markdown(
+            config.message,
+            extensions=["extra", "attr_list"],
+            output_format="html",
+        ).strip()
+        # Remove wrapping <p> tags if present (for inline rendering)
+        if message_html.startswith("<p>") and message_html.endswith("</p>"):
+            message_html = message_html[3:-4]
+
+        # Sanitize HTML to prevent XSS attacks
+        # Allow only safe tags and attributes needed for message bar functionality
+        allowed_tags = ["a", "strong", "em", "b", "i", "code", "br", "span"]
+        allowed_attributes = {
+            "a": ["href", "title", "target", "rel"],
+            "span": ["class"],
+        }
+        # Sanitize and ensure no javascript: URLs or dangerous protocols
+        message = bleach.clean(
+            message_html,
+            tags=allowed_tags,
+            attributes=allowed_attributes,
+            protocols=["http", "https", "mailto"],
+            strip=True,
+        )
+
+        # Get Platzky defaults from database
+        # Will fail fast if db is not available
+        platzky_primary_color = app.db.get_primary_color()
+        platzky_secondary_color = app.db.get_secondary_color()
+        platzky_font = app.db.get_font()
+
+        # Get validated CSS values with fallback priority:
+        # 1. Validated plugin config (from Pydantic model)
+        # 2. Platzky DB defaults
+        # 3. Hardcoded defaults
+        background_color = config.get_validated_background_color(platzky_primary_color or "#245466")
+
+        text_color = config.get_validated_text_color(platzky_secondary_color or "white")
+
+        font_family = config.get_validated_font_family(
+            f"'{platzky_font}', sans-serif" if platzky_font else "'Arial', sans-serif"
+        )
+
+        font_size = config.get_validated_font_size("14px")
+
+        bar_height = config.get_validated_bar_height("30px")
+
+        @app.after_request
+        def inject_msg_bar(response: Response) -> Response:
+            """Inject message bar HTML and CSS into HTML responses.
+
+            This Flask after_request hook intercepts HTML responses and injects
+            the message bar styles and HTML before the closing </head> tag.
+
+            Args:
+                response: The Flask Response object to modify
+
+            Returns:
+                The modified Response object with injected message bar (if HTML)
+                or the original response unchanged (if not HTML)
+            """
+            if "text/html" in response.headers.get("Content-Type", ""):
+                close_js = (
+                    "document.getElementById('MsgBar').remove();"
+                    "document.getElementById('MsgBarStyle').remove();"
+                )
+                bar_html = f"""
+<style id="MsgBarStyle">
+
+#MsgBar {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: {background_color};
+    color: {text_color};
+    font-size: {font_size};
+    font-family: {font_family};
+    z-index: 9999;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+}}
+
+#MsgBar .msg-content {{
+    flex: 1;             /* takes full width */
+    text-align: center;  /* centers the text */
+}}
+
+#MsgBar .msg-content a {{
+    color: inherit;
+    text-decoration: underline;
+    font-weight: bold;
+}}
+
+#MsgBar .msg-content a:hover {{
+    text-decoration: none;
+    opacity: 0.8;
+}}
+
+#MsgBar .close-btn {{
+    position: relative;  /* required by tests */
+    margin-left: auto;   /* pushes to the right */
+    font-weight: bold;
+    font-size: 16px;
+    color: {text_color};
+    cursor: pointer;
+    background: none;
+    border: none;
+}}
+
+body {{
+    padding-top: {bar_height} !important;
+}}
+
+</style>
+<div id="MsgBar">
+    <div class="msg-content">{message}</div>
+    <button class="close-btn" onclick="{close_js}">&times;</button>
+</div>
+"""
+
+                html = response.get_data(as_text=True)
+                html = html.replace("</head>", bar_html + "</head>")
+                response.set_data(html)
+
+            return response
+
+        return app
