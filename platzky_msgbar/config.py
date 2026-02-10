@@ -2,11 +2,13 @@
 
 import re
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+
+from platzky.plugin.plugin import PluginBaseConfig
+from pydantic import Field, field_validator
 from pydantic_extra_types.color import Color
 
 
-class MsgBarConfig(BaseModel):
+class MsgBarConfig(PluginBaseConfig):
     """
     Configuration model for the msgbar plugin.
 
@@ -14,6 +16,8 @@ class MsgBarConfig(BaseModel):
     """
 
     message: str = Field(
+        min_length=1,
+        max_length=500,
         description="The message to display in the bar (supports Markdown)",
     )
 
@@ -27,9 +31,7 @@ class MsgBarConfig(BaseModel):
         description="CSS color value for text (hex, rgb/rgba, hsl/hsla, or color name)",
     )
 
-    font_family: Optional[str] = Field(
-        default=None, description="CSS font-family value"
-    )
+    font_family: Optional[str] = Field(default=None, description="CSS font-family value")
 
     font_size: Optional[str] = Field(
         default=None, description="CSS font-size value (e.g., '14px', '1rem')"
@@ -105,8 +107,8 @@ class MsgBarConfig(BaseModel):
         if len(v) > 200:
             return None
 
-        # Reject dangerous characters that could break CSS context
-        if re.search(r"[;{}\\<>]", v):
+        # Reject dangerous characters and CSS comments that could break CSS context
+        if re.search(r"[;{}\\<>]|/\*|\*/", v):
             return None
 
         # Reject CSS functions that could be exploited

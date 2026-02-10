@@ -8,5 +8,6 @@ describe('msgbar plugin behaviour', () => {
         cy.get('#MsgBar .close-btn').should('be.visible').scrollIntoView().click();
         cy.get('#MsgBar').should('not.exist');
         cy.get('#MsgBarStyle').should('not.exist');
+        cy.get('#MsgBarScript').should('not.exist');
     })
 })

@@ -1,21 +1,3 @@
-install:
-	pip install .
-
-test:
-	pytest
-
-build:
-	poetry build
-
-unit-tests:
-	poetry run python -m pytest -v
-
-publish:
-	poetry publish --build
-
-clean:
-	rm -rf dist build *.egg-info
-
 lint:
 	poetry run black .
 	poetry run ruff check --fix .
@@ -27,10 +9,21 @@ lint-check:
 	poetry run black --check .
 	poetry run ruff check .
 	poetry run pyright .
+	poetry run interrogate platzky_msgbar/ --verbose
 
-# coverage:
-# 	poetry run coverage run --branch --source=platzky_hotjar -m pytest -m "not skip_coverage"
-# 	poetry run coverage lcov
+unit-tests:
+	poetry run python -m pytest -v
 
-# html-cov: coverage
-# 	poetry run coverage html
+coverage:
+	poetry run coverage run --branch --source=platzky_msgbar -m pytest -m "not skip_coverage"
+	poetry run coverage report --fail-under=90
+	poetry run coverage lcov
+
+html-cov: coverage
+	poetry run coverage html
+
+audit:
+	poetry run pip-audit || true
+
+build:
+	poetry build
