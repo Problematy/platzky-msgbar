@@ -1,6 +1,7 @@
 """Platzky msgbar plugin that injects a message bar into HTML responses."""
 
 import logging
+import re
 from typing import cast
 
 import bleach
@@ -45,16 +46,15 @@ class MsgBarPlugin(PluginBase[MsgBarConfig]):
         """
         config = cast(MsgBarConfig, self.config)
 
-        # Convert markdown to HTML (inline only, no <p> tags)
+        # Convert markdown to HTML
         # attr_list extension allows syntax like: [link](url){:target="_blank"}
         message_html = markdown.markdown(
             config.message,
             extensions=["extra", "attr_list"],
             output_format="html",
         ).strip()
-        # Remove wrapping <p> tags if present (for inline rendering)
-        if message_html.startswith("<p>") and message_html.endswith("</p>"):
-            message_html = message_html[3:-4]
+        # Strip all wrapping <p> tags for inline rendering in the bar
+        message_html = re.sub(r"</?p>", "", message_html).strip()
 
         # Sanitize HTML to prevent XSS attacks
         # Allow only safe tags and attributes needed for message bar functionality
