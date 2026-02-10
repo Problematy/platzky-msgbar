@@ -266,8 +266,9 @@ def test_msgbar_sanitizes_event_handlers():
     # The malicious onclick should not appear in the message link
     # No inline onclick handlers are allowed inside message content
     assert "onclick" not in msgbar_content
-    # But the close button's onclick (outside msg-content) should still exist
-    assert 'onclick="document.getElementById' in html
+    # The close button should use addEventListener via a script tag, not inline onclick
+    assert "addEventListener" in html
+    assert '<script id="MsgBarScript">' in html
     assert "alert('XSS')" not in msgbar_content
     # The safe parts should still be present in the message content
     assert '<a href="https://example.com"' in msgbar_content
@@ -480,3 +481,73 @@ def test_msgbar_config_explicit_none_sizes():
     assert "font-size: 14px" in html
     assert "padding-top: 30px" in html
     assert "font-family: 'Arial', sans-serif" in html
+
+
+def test_msgbar_sanitizes_data_uri():
+    """Test that data: URIs are blocked to prevent XSS attacks"""
+    app = _create_app_with_plugin(
+        {
+            "message": "[link](data:text/html,<script>alert('XSS')</script>)",
+        }
+    )
+    html = _get_response_html(app)
+    msgbar_content = _extract_msgbar_content(html)
+
+    # data: URI should be blocked
+    assert "data:text/html" not in msgbar_content
+    assert "<script>" not in msgbar_content
+    # The link text should still be present
+    assert "link" in msgbar_content
+
+
+def test_msgbar_handles_db_failure_gracefully():
+    """Test that the plugin renders with hardcoded defaults when DB fails."""
+    from unittest.mock import patch
+
+    with patch("platzky_msgbar.plugin._get_theme_defaults", return_value=(None, None, None)):
+        app = _create_app_with_plugin({"message": "DB failure test"})
+
+    html = _get_response_html(app)
+
+    # Should use hardcoded defaults
+    assert "background-color: #245466" in html
+    assert "color: white" in html
+    assert "font-family: 'Arial', sans-serif" in html
+    assert "DB failure test" in html
+
+
+def test_msgbar_skipped_with_skip_header():
+    """Test that the message bar is not injected when X-Skip-MsgBar header is set."""
+    app = _create_app_with_plugin({"message": "Should not appear"})
+
+    @app.route("/skip-msgbar")
+    def skip_msgbar():
+        from flask import make_response
+
+        resp = make_response("<html><head></head><body>No bar</body></html>")
+        resp.headers["X-Skip-MsgBar"] = "true"
+        return resp
+
+    response = app.test_client().get("/skip-msgbar")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "MsgBar" not in html
+    assert "No bar" in html
+
+
+def test_msgbar_blocks_css_comment_injection_in_font_family():
+    """Test that CSS comments in font-family are rejected"""
+    app = _create_app_with_plugin(
+        {
+            "message": "Test",
+            "font_family": "Arial, /* } body { display: none; } */ sans-serif",
+        }
+    )
+    html = _get_response_html(app)
+    msgbar_style = _extract_msgbar_style(html)
+
+    # CSS comment injection should be blocked, default font used instead
+    assert "display: none" not in msgbar_style
+    assert "font-family: 'Arial', sans-serif" in msgbar_style
+    # The malicious font-family value should not appear
+    assert "} body {" not in msgbar_style

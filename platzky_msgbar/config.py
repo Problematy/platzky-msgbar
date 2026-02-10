@@ -107,8 +107,8 @@ class MsgBarConfig(PluginBaseConfig):
         if len(v) > 200:
             return None
 
-        # Reject dangerous characters that could break CSS context
-        if re.search(r"[;{}\\<>]", v):
+        # Reject dangerous characters and CSS comments that could break CSS context
+        if re.search(r"[;{}\\<>]|/\*|\*/", v):
             return None
 
         # Reject CSS functions that could be exploited
