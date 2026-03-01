@@ -17,7 +17,7 @@ bleach = "^6.1.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 black = "^24.10.0"
-ruff = "^0.8.3"
+ruff = ">=0.8.3,<0.16.0"
 pyright = "^1.1.390"
 coverage = "^7.6.9"
 interrogate = "^1.7.0"
