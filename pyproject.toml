@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-platzky = "^1.4.2"
+platzky = "^2.0.0a10"
 pydantic = "^2.10.3"
 pydantic-extra-types = "^2.10.1"
 markdown = "^3.10"
