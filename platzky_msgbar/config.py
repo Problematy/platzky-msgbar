@@ -3,12 +3,11 @@
 import re
 from typing import Optional
 
-from platzky.plugin.plugin import PluginBaseConfig
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_extra_types.color import Color
 
 
-class MsgBarConfig(PluginBaseConfig):
+class MsgBarConfig(BaseModel):
     """
     Configuration model for the msgbar plugin.
 

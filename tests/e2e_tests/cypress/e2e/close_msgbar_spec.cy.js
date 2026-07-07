@@ -1,6 +1,6 @@
 describe('msgbar plugin behaviour', () => {
     beforeEach(() => {
-        cy.visit('/');
+        cy.visit('/blog/page/about');
     });
     
     it('should close the message bar when close button is clicked', () => {

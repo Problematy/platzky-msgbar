@@ -34,9 +34,18 @@
       }
     ],
     "location_obligatory_fields": [
-      ["name", "str"],
-      ["accessible_by", "list"],
-      ["type_of_place", "str"]
+      [
+        "name",
+        "str"
+      ],
+      [
+        "accessible_by",
+        "list"
+      ],
+      [
+        "type_of_place",
+        "str"
+      ]
     ],
     "categories": {
       "accessible_by": [
@@ -67,7 +76,7 @@
           "url": "",
           "alternateText": ""
         },
-        "date": "01-01-2024",
+        "date": "2024-01-01",
         "author": "",
         "comments": [],
         "excerpt": "",
@@ -82,7 +91,7 @@
           "url": "",
           "alternateText": ""
         },
-        "date": "01-01-2024",
+        "date": "2024-01-01",
         "author": "",
         "comments": [],
         "excerpt": "",
@@ -122,12 +131,15 @@
     "secondary_color": "#245466",
     "left_bar_width": "300px"
   },
-  "plugins": [
-    {
-        "name": "msgbar",
-        "config": {
-            "message": "Your custom message goes here"
-        }
+  "plugins": {
+    "msgbar": {
+      "is_active": true,
+      "allowed_page_sections": [
+        "body"
+      ],
+      "config": {
+        "message": "Your custom message goes here"
+      }
     }
-  ]
+  }
 }

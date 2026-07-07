@@ -8,11 +8,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-platzky = "^1.4.2"
-pydantic = "^2.10.3"
+platzky = "^2.0.0a10"
+pydantic = "^2.12"
 pydantic-extra-types = "^2.10.1"
 markdown = "^3.10"
 bleach = "^6.1.0"
+
+[tool.poetry.plugins."platzky.plugins"]
+msgbar = "platzky_msgbar:MsgBarPlugin"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
