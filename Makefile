@@ -22,8 +22,5 @@ coverage:
 html-cov: coverage
 	poetry run coverage html
 
-audit:
-	poetry run pip-audit || true
-
 build:
 	poetry build
