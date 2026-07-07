@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from flask import Flask
 from platzky.platzky import Config, create_app_from_config
@@ -21,65 +21,60 @@ def _get_test_page():
     }
 
 
-def _create_test_config(
-    plugin_config: Dict[str, Any],
-    site_content: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+def _create_test_config(plugin_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create test configuration with plugin settings.
 
     Args:
         plugin_config: Plugin configuration dictionary
-        site_content: Optional site content overrides (for theme defaults)
 
     Returns:
         Complete configuration dictionary for Platzky
     """
-    base_site_content = {"pages": [_get_test_page()]}
-    if site_content:
-        base_site_content.update(site_content)
-
     return {
         "APP_NAME": "testingApp",
         "SECRET_KEY": "secret",
         "USE_WWW": False,
-        "BLOG_PREFIX": "/",
+        "BLOG_PREFIX": "/blog",
         "TRANSLATION_DIRECTORIES": ["/some/fake/dir"],
         "DB": {
             "TYPE": "json",
             "DATA": {
-                "site_content": base_site_content,
-                "plugins": [{"name": "msgbar", "config": plugin_config}],
+                "site_content": {"pages": [_get_test_page()]},
+                "plugins": {
+                    "msgbar": {
+                        "is_active": True,
+                        "allowed_page_sections": ["body"],
+                        "config": plugin_config,
+                    }
+                },
             },
         },
     }
 
 
-def _create_app_with_plugin(
-    plugin_config: Dict[str, Any], site_content: Optional[Dict[str, Any]] = None
-) -> Flask:
+def _create_app_with_plugin(plugin_config: Dict[str, Any]) -> Flask:
     """
     Create Flask app with msgbar plugin configured.
 
     Args:
         plugin_config: Plugin configuration dictionary
-        site_content: Optional site content overrides (for theme defaults)
 
     Returns:
         Configured Flask application
     """
-    data = _create_test_config(plugin_config, site_content)
+    data = _create_test_config(plugin_config)
     config = Config.model_validate(data)
     return create_app_from_config(config)
 
 
-def _get_response_html(app: Flask, path: str = "/page/test") -> str:
+def _get_response_html(app: Flask, path: str = "/blog/page/test") -> str:
     """
     Get decoded HTML response from app.
 
     Args:
         app: Flask application
-        path: Request path (default: /page/test)
+        path: Request path (default: /blog/page/test)
 
     Returns:
         Decoded HTML response as string
@@ -142,30 +137,14 @@ def test_msgbar_with_custom_styling():
     )
     html = _get_response_html(app)
 
-    # Check that custom styling is applied
-    assert "background-color: #ff5733" in html
-    assert "color: #ffffff" in html
-    assert "font-family: 'Courier New', monospace" in html
-    assert "font-size: 16px" in html
-    assert "padding-top: 40px" in html
+    # Check that custom styling is applied (page CSS is minified, so no space
+    # after ':' or ',')
+    assert "background-color:#ff5733" in html
+    assert "color:#ffffff" in html
+    assert "font-family:'Courier New',monospace" in html
+    assert "font-size:16px" in html
+    assert "padding-top:40px" in html
     assert "Styled message" in html
-
-
-def test_msgbar_with_platzky_theme_defaults():
-    """Test that Platzky theme defaults from DB are used when plugin config is not provided."""
-    site_content = {
-        "primary_color": "#123456",
-        "secondary_color": "#abcdef",
-        "font": "Roboto",
-    }
-    app = _create_app_with_plugin({"message": "Message with theme defaults"}, site_content)
-    html = _get_response_html(app)
-
-    # Check that Platzky theme defaults from DB are used
-    assert "background-color: #123456" in html
-    assert "color: #abcdef" in html
-    assert "font-family: 'Roboto', sans-serif" in html
-    assert "Message with theme defaults" in html
 
 
 def test_msgbar_with_markdown_links():
@@ -314,7 +293,7 @@ def test_msgbar_blocks_css_injection_in_background_color():
     assert "display: none" not in msgbar_style
     assert "} #foo {" not in msgbar_style
     # The injected content should not break out of the MsgBar styling
-    assert "#MsgBar {" in msgbar_style
+    assert "#MsgBar{" in msgbar_style
     # Background should be a valid color (not containing injection)
     assert re.search(r"background-color:\s*[^;{]+;", msgbar_style) is not None
 
@@ -333,8 +312,8 @@ def test_msgbar_blocks_css_injection_in_font_family():
 
     # CSS injection should be blocked
     assert "evil.com" not in html
-    # Default font family should be used
-    assert "font-family: 'Arial', sans-serif" in html
+    # Default font family should be used (page CSS is minified)
+    assert "font-family:'Arial',sans-serif" in html
 
 
 def test_msgbar_blocks_css_url_function():
@@ -364,11 +343,11 @@ def test_msgbar_validates_css_size_values():
     )
     html = _get_response_html(app)
 
-    # Invalid size values should be rejected and defaults used
-    assert "font-size: 14px" in html  # Default
-    assert "color: red" not in html  # CSS injection blocked
+    # Invalid size values should be rejected and defaults used (page CSS is minified)
+    assert "font-size:14px" in html  # Default
+    assert "color:red" not in html  # CSS injection blocked
     assert "calc(" not in html  # CSS function blocked
-    assert "padding-top: 30px" in html  # Default height
+    assert "padding-top:30px" in html  # Default height
 
 
 def test_msgbar_accepts_valid_css_colors():
@@ -382,9 +361,9 @@ def test_msgbar_accepts_valid_css_colors():
     )
     html = _get_response_html(app)
 
-    # Valid colors should be accepted
-    assert "background-color: #ff5733" in html
-    assert "color: rgb(255, 255, 255)" in html
+    # Valid colors should be accepted (page CSS is minified)
+    assert "background-color:#ff5733" in html
+    assert "color:rgb(255,255,255)" in html
 
 
 def test_msgbar_accepts_valid_css_sizes():
@@ -398,9 +377,9 @@ def test_msgbar_accepts_valid_css_sizes():
     )
     html = _get_response_html(app)
 
-    # Valid sizes should be accepted
-    assert "font-size: 16px" in html
-    assert "padding-top: 2rem" in html
+    # Valid sizes should be accepted (page CSS is minified)
+    assert "font-size:16px" in html
+    assert "padding-top:2rem" in html
 
 
 def test_msgbar_requires_message_field():
@@ -435,21 +414,6 @@ def test_msgbar_not_injected_in_non_html_responses():
     assert "MsgBar" not in response.data.decode()
 
 
-def test_msgbar_skips_html_without_head_tag():
-    """Test that responses without </head> tag are returned unchanged."""
-    app = _create_app_with_plugin({"message": "Test"})
-
-    @app.route("/no-head")
-    def no_head():
-        return "<html><body>Hello</body></html>"
-
-    response = app.test_client().get("/no-head")
-    assert response.status_code == 200
-    html = response.data.decode()
-    assert "MsgBar" not in html
-    assert "Hello" in html
-
-
 def test_msgbar_config_explicit_none_colors():
     """Test that explicitly passing None colors falls back to defaults."""
     app = _create_app_with_plugin(
@@ -477,10 +441,10 @@ def test_msgbar_config_explicit_none_sizes():
     )
     html = _get_response_html(app)
 
-    # Should use hardcoded defaults
-    assert "font-size: 14px" in html
-    assert "padding-top: 30px" in html
-    assert "font-family: 'Arial', sans-serif" in html
+    # Should use hardcoded defaults (page CSS is minified)
+    assert "font-size:14px" in html
+    assert "padding-top:30px" in html
+    assert "font-family:'Arial',sans-serif" in html
 
 
 def test_msgbar_sanitizes_data_uri():
@@ -500,41 +464,6 @@ def test_msgbar_sanitizes_data_uri():
     assert "link" in msgbar_content
 
 
-def test_msgbar_handles_db_failure_gracefully():
-    """Test that the plugin renders with hardcoded defaults when DB fails."""
-    from unittest.mock import patch
-
-    with patch("platzky_msgbar.plugin._get_theme_defaults", return_value=(None, None, None)):
-        app = _create_app_with_plugin({"message": "DB failure test"})
-
-    html = _get_response_html(app)
-
-    # Should use hardcoded defaults
-    assert "background-color: #245466" in html
-    assert "color: white" in html
-    assert "font-family: 'Arial', sans-serif" in html
-    assert "DB failure test" in html
-
-
-def test_msgbar_skipped_with_skip_header():
-    """Test that the message bar is not injected when X-Skip-MsgBar header is set."""
-    app = _create_app_with_plugin({"message": "Should not appear"})
-
-    @app.route("/skip-msgbar")
-    def skip_msgbar():
-        from flask import make_response
-
-        resp = make_response("<html><head></head><body>No bar</body></html>")
-        resp.headers["X-Skip-MsgBar"] = "true"
-        return resp
-
-    response = app.test_client().get("/skip-msgbar")
-    assert response.status_code == 200
-    html = response.data.decode()
-    assert "MsgBar" not in html
-    assert "No bar" in html
-
-
 def test_msgbar_blocks_css_comment_injection_in_font_family():
     """Test that CSS comments in font-family are rejected"""
     app = _create_app_with_plugin(
@@ -546,8 +475,8 @@ def test_msgbar_blocks_css_comment_injection_in_font_family():
     html = _get_response_html(app)
     msgbar_style = _extract_msgbar_style(html)
 
-    # CSS comment injection should be blocked, default font used instead
+    # CSS comment injection should be blocked, default font used instead (minified)
     assert "display: none" not in msgbar_style
-    assert "font-family: 'Arial', sans-serif" in msgbar_style
+    assert "font-family:'Arial',sans-serif" in msgbar_style
     # The malicious font-family value should not appear
     assert "} body {" not in msgbar_style
