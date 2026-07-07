@@ -1,6 +1,7 @@
 name: Testing pipeline
 
 on:
+  workflow_call:
   pull_request:
     branches:
       - main
@@ -29,67 +30,13 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - name: Install Poetry
-      run: pip install poetry==2.0.1
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.10"
-        cache: 'poetry'
-    - name: Install dependencies
-      run: poetry install
-    - name: Run linters
-      run: make lint-check
-    - name: Security audit
-      run: make audit
+    uses: ./.github/workflows/lint.yml
 
   test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - name: Install Poetry
-      run: pip install poetry==2.0.1
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.10"
-        cache: 'poetry'
-    - name: Install dependencies
-      run: poetry install
-    - name: Run tests with coverage
-      run: make coverage
-    - name: Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        path-to-lcov: "./coverage.lcov"
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/test.yml
+    with:
+      upload-coveralls: true
+    secrets: inherit
 
   e2e:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - name: Install Poetry
-      run: pip install poetry==2.0.1
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.10"
-        cache: 'poetry'
-    - name: Install dependencies
-      run: poetry install
-    - name: Set up Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '22'
-    - name: Install Cypress
-      working-directory: tests/e2e_tests
-      run: npm install cypress
-    - name: Run e2e tests
-      run: |
-        poetry run flask --app "tests.e2e_tests.e2e_app:create_app(config_path='tests/e2e_tests/e2e_test_config.yml')" run --debug --host=localhost &
-        for i in $(seq 1 30); do curl -sf http://localhost:5000/health/liveness > /dev/null && break || sleep 1; done
-        curl -sf http://localhost:5000/health/liveness > /dev/null || { echo "Flask app failed to start"; exit 1; }
-        cd tests/e2e_tests && npx cypress run --spec "cypress/e2e/**/*"
+    uses: ./.github/workflows/e2e.yml
