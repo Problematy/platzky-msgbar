@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## [2.0.0](https://github.com/Problematy/platzky-msgbar/compare/1.0.0...v2.0.0) (2026-07-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* new releasing system ([#22](https://github.com/Problematy/platzky-msgbar/issues/22))
+
+### Features
+
+* new releasing system ([#22](https://github.com/Problematy/platzky-msgbar/issues/22)) ([16965fc](https://github.com/Problematy/platzky-msgbar/commit/16965fc89d5d06e198a1548ff065e9753f0b14c7))
+
+
+### Bug Fixes
+
+* fixed dependencies ([#25](https://github.com/Problematy/platzky-msgbar/issues/25)) ([5341d8f](https://github.com/Problematy/platzky-msgbar/commit/5341d8f4d3148e8e7e89c085d446c6de83812166))
+
 ## v0.1.7 (2025-12-02)
 
 ### Bug Fixes
